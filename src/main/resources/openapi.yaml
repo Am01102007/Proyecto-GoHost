@@ -1,0 +1,1591 @@
+openapi: 3.0.0
+info:
+  title: Booking Platform API
+  version: "1.1.0"
+  description: >
+    API unificada para usuarios, alojamientos, anfitriones, reservas, imágenes, notificaciones y reportes.
+    Convenciones: plural (users, accommodations, hosts, reservations). Sin prefijo /api.
+servers:
+  - url: http://localhost:8080
+    description: Local
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Accommodations
+  - name: Reservations
+  - name: Hosts
+  - name: Images
+  - name: Notifications
+  - name: Metrics & Reports
+  - name: Search & Cities
+  - name: Reviews
+
+# Seguridad por defecto (JWT). Endpoints públicos usan security: []
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserIdPath:
+      in: path
+      name: userId
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    HostIdPath:
+      in: path
+      name: hostId
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    AccommodationIdPath:
+      in: path
+      name: accommodationId
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    ReservationIdPath:
+      in: path
+      name: reservationId
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    ImageIdPath:
+      in: path
+      name: imageId
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    NotificationIdPath:
+      in: path
+      name: notificationId
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+
+    # Search params
+    CityQuery:
+      in: query
+      name: city
+      schema:
+        type: string
+    CheckInQuery:
+      in: query
+      name: checkIn
+      schema:
+        type: string
+        format: date
+    CheckOutQuery:
+      in: query
+      name: checkOut
+      schema:
+        type: string
+        format: date
+    MinPriceQuery:
+      in: query
+      name: minPrice
+      schema:
+        type: number
+        minimum: 0
+    MaxPriceQuery:
+      in: query
+      name: maxPrice
+      schema:
+        type: number
+        minimum: 0
+    ServicesQuery:
+      in: query
+      name: services
+      description: CSV list of service slugs/ids
+      schema:
+        type: string
+    MinCapacityQuery:
+      in: query
+      name: minCapacity
+      schema:
+        type: integer
+        minimum: 1
+    LatQuery:
+      in: query
+      name: lat
+      schema:
+        type: number
+        minimum: -90
+        maximum: 90
+    LngQuery:
+      in: query
+      name: lng
+      schema:
+        type: number
+        minimum: -180
+        maximum: 180
+    RadiusQuery:
+      in: query
+      name: radius
+      schema:
+        type: number
+        minimum: 0
+    PageQuery:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    SizeQuery:
+      in: query
+      name: size
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    YearQuery:
+      in: query
+      name: year
+      schema:
+        type: integer
+        minimum: 2000
+    MonthQuery:
+      in: query
+      name: month
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+    PeriodQuery:
+      in: query
+      name: period
+      schema:
+        type: string
+        enum: [DAY, WEEK, MONTH, YEAR]
+    StatusQuery:
+      in: query
+      name: status
+      schema:
+        type: string
+    StartDateQuery:
+      in: query
+      name: startDate
+      schema:
+        type: string
+        format: date
+    EndDateQuery:
+      in: query
+      name: endDate
+      schema:
+        type: string
+        format: date
+    IncludeQuery:
+      in: query
+      name: include
+      schema:
+        type: string
+        enum: [full]
+      description: Include full detail in metrics/dashboard where supported
+    QueryText:
+      in: query
+      name: query
+      description: Partial city name (min 2 chars)
+      schema:
+        type: string
+        minLength: 2
+    IfMatchHeader:
+      in: header
+      name: If-Match
+      required: false
+      schema: { type: string }
+      description: Must match the current ETag of the reservation (optimistic locking).
+    IdempotencyKeyHeader:
+      in: header
+      name: Idempotency-Key
+      required: false
+      schema: { type: string, minLength: 1, maxLength: 128 }
+      description: Client-provided key to make the PATCH idempotent on retries.
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    PayloadTooLarge:
+      description: Payload Too Large
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    PreconditionFailed:
+      description: Precondition Failed (ETag mismatch)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    # Auth / Users
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+    PasswordForgotRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    VerifyCodeRequest:
+      type: object
+      required: [email, code]
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+    ResetPasswordRequest:
+      type: object
+      required: [email, code, newPassword]
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+
+    RegisterUserRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [USER, HOST, ADMIN]
+          default: USER
+        birthDate:
+          type: string
+          format: date
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        profilePhoto:
+          type: string
+          format: uri
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword, confirmPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+          minLength: 8
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        role:
+          type: string
+        birthDate:
+          type: string
+          format: date
+
+    # Accommodations
+    AccommodationCreate:
+      type: object
+      required: [title, description, city, address, latitude, longitude, pricePerNight, capacity]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        pricePerNight:
+          type: number
+        capacity:
+          type: integer
+        amenities:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+    AccommodationUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        pricePerNight:
+          type: number
+        capacity:
+          type: integer
+        amenities:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        minNights:
+          type: integer
+          minimum: 1
+    AccommodationSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        city:
+          type: string
+        pricePerNight:
+          type: number
+        capacity:
+          type: integer
+        heroPhoto:
+          type: string
+          format: uri
+        rating:
+          type: number
+          format: float
+        reviewCount:
+          type: integer
+    AccommodationDetail:
+      allOf:
+        - $ref: '#/components/schemas/AccommodationSummary'
+        - type: object
+          properties:
+            address:
+              type: string
+            latitude:
+              type: number
+            longitude:
+              type: number
+            description:
+              type: string
+            amenities:
+              type: array
+              items:
+                type: string
+            photos:
+              type: array
+              items:
+                type: string
+                format: uri
+            minNights:
+              type: integer
+              minimum: 1
+
+    # Reviews
+    ReviewCreate:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 500
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 500
+        createdAt:
+          type: string
+          format: date-time
+    ReviewReplyCreate:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string
+          minLength: 1
+
+    # Reservations
+    ReservationCreate:
+      type: object
+      required: [userId, accommodationId, checkIn, checkOut, guests]
+      properties:
+        userId:
+          type: integer
+        accommodationId:
+          type: integer
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        guests:
+          type: integer
+          minimum: 1
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        accommodationId:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        guests:
+          type: integer
+        totalPrice:
+          type: number
+    ReservationStatusUpdate:
+      oneOf:
+        - type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [APPROVED]
+        - type: object
+          required: [status, reason]
+          properties:
+            status:
+              type: string
+              enum: [REJECTED]
+            reason:
+              type: string
+
+    ReservationValidationRequest:
+      type: object
+      properties:
+        accommodationId:
+          type: integer
+        numberOfGuests:
+          type: integer
+          minimum: 1
+        checkInDate:
+          type: string
+          format: date
+        checkOutDate:
+          type: string
+          format: date
+        checks:
+          type: array
+          items:
+            type: string
+            enum: [CAPACITY, DATES_ORDER, AVAILABILITY]
+      anyOf:
+        - required: [accommodationId, numberOfGuests, checks]
+        - required: [accommodationId, checkInDate, checkOutDate, checks]
+    ReservationValidationResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+
+    # Images
+    ImageMetadata:
+      type: object
+      properties:
+        id:
+          type: integer
+        url:
+          type: string
+          format: uri
+        isPrincipal:
+          type: boolean
+        description:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        sizeBytes:
+          type: integer
+
+    # Notifications
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    # Metrics & Reports
+    Metrics:
+      type: object
+      properties:
+        views:
+          type: integer
+        bookings:
+          type: integer
+        reservationsCount:
+          type: integer
+        conversionRate:
+          type: number
+    IncomeReport:
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        totalIncome:
+          type: number
+    RatingsReport:
+      type: object
+      properties:
+        average:
+          type: number
+        count:
+          type: integer
+        histogram:
+          type: object
+          additionalProperties:
+            type: integer
+
+paths:
+  # =========================
+  # /users/*
+  # =========================
+  /users:
+    post:
+      tags: [Users]
+      summary: Register user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get user info
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Users]
+      summary: Update user profile
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Users]
+      summary: Delete user account
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/password:
+    patch:
+      tags: [Users]
+      summary: Change password
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/reservations:
+    get:
+      tags: [Reservations]
+      summary: List reservations of a user (filters for history)
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/StatusQuery'
+        - $ref: '#/components/parameters/StartDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reservation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/favorites:
+    get:
+      tags: [Users]
+      summary: List user favorites
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccommodationSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =========================
+  # /auth/*
+  # =========================
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/password/forgot:
+    post:
+      tags: [Auth]
+      summary: Request password reset code
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordForgotRequest'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/password/verify-code:
+    post:
+      tags: [Auth]
+      summary: Verify reset code
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyCodeRequest'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /auth/recovery/reset:
+    post:
+      tags: [Auth]
+      summary: Reset password with code
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =========================
+  # /accommodations/*
+  # =========================
+  /accommodations:
+    post:
+      tags: [Accommodations]
+      summary: Create accommodation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccommodationCreate'
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /accommodations/{accommodationId}:
+    get:
+      tags: [Accommodations]
+      summary: Get accommodation detail (public)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Accommodations]
+      summary: Edit accommodation
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccommodationUpdate'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Accommodations]
+      summary: Soft-delete accommodation
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+      responses:
+        '200':
+          description: OK
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /accommodations/search:
+    get:
+      tags: [Search & Cities]
+      summary: Search accommodations (dates, price, services, capacity, geo, pagination)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CityQuery'
+        - $ref: '#/components/parameters/CheckInQuery'
+        - $ref: '#/components/parameters/CheckOutQuery'
+        - $ref: '#/components/parameters/MinPriceQuery'
+        - $ref: '#/components/parameters/MaxPriceQuery'
+        - $ref: '#/components/parameters/ServicesQuery'
+        - $ref: '#/components/parameters/MinCapacityQuery'
+        - $ref: '#/components/parameters/LatQuery'
+        - $ref: '#/components/parameters/LngQuery'
+        - $ref: '#/components/parameters/RadiusQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AccommodationSummary'
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+                  totalElements:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /accommodations/{accommodationId}/reviews:
+    get:
+      tags: [Reviews]
+      summary: List accommodation reviews (public)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Reviews]
+      summary: Add review to accommodation
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /reviews/{reviewId}/reply:
+    post:
+      tags: [Reviews]
+      summary: Reply to a review
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewReplyCreate'
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /accommodations/{accommodationId}/images:
+    post:
+      tags: [Images]
+      summary: Upload image to accommodation (validates mime/size; optional compression)
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                description:
+                  type: string
+                isPrincipal:
+                  type: boolean
+                compressed:
+                  type: boolean
+                  default: false
+                  description: If true, server compresses before storing
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageMetadata'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /accommodations/{accommodationId}/images/{imageId}/set-principal:
+    put:
+      tags: [Images]
+      summary: Set principal image
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+        - $ref: '#/components/parameters/ImageIdPath'
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =========================
+  # /images/* (non-nested)
+  # =========================
+  /images/{imageId}:
+    delete:
+      tags: [Images]
+      summary: Delete image
+      parameters:
+        - $ref: '#/components/parameters/ImageIdPath'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /images/{imageId}/metadata:
+    get:
+      tags: [Images]
+      summary: Get image metadata
+      parameters:
+        - $ref: '#/components/parameters/ImageIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageMetadata'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =========================
+  # /reservations/*
+  # =========================
+  /reservations:
+    post:
+      tags: [Reservations]
+      summary: Create reservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationCreate'
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /reservations/{reservationId}:
+    get:
+      tags: [Reservations]
+      summary: Get reservation detail
+      parameters:
+        - $ref: '#/components/parameters/ReservationIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Reservations]
+      summary: Cancel reservation
+      parameters:
+        - $ref: '#/components/parameters/ReservationIdPath'
+      responses:
+        '200':
+          description: OK
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /reservations/{reservationId}/status:
+    patch:
+      tags: [Reservations]
+      summary: Approve/Reject reservation
+      parameters:
+        - $ref: '#/components/parameters/ReservationIdPath'
+        - $ref: '#/components/parameters/IfMatchHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationStatusUpdate'
+
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /reservations/validate:
+    post:
+      tags: [Reservations]
+      summary: Validate capacity, dates order and/or availability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationValidationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationValidationResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /reservations/{reservationId}/can-cancel:
+    get:
+      tags: [Reservations]
+      summary: Check cancellation policy
+      parameters:
+        - $ref: '#/components/parameters/ReservationIdPath'
+      responses:
+        '200':
+          description: Can cancel
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =========================
+  # /hosts/*
+  # =========================
+  /hosts/{hostId}/accommodations:
+    get:
+      tags: [Hosts]
+      summary: List a host’s accommodations
+      parameters:
+        - $ref: '#/components/parameters/HostIdPath'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccommodationSummary'
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /hosts/{hostId}/reservations:
+    get:
+      tags: [Hosts]
+      summary: List reservations of a host
+      parameters:
+        - $ref: '#/components/parameters/HostIdPath'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reservation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /hosts/{hostId}/dashboard:
+    get:
+      tags: [Hosts]
+      summary: Host dashboard (may include reservations stats)
+      parameters:
+        - $ref: '#/components/parameters/HostIdPath'
+        - $ref: '#/components/parameters/PeriodQuery'
+        - $ref: '#/components/parameters/IncludeQuery'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =========================
+  # /accommodations/* (metrics & reports)
+  # =========================
+  /accommodations/{accommodationId}/metrics:
+    get:
+      tags: [Metrics & Reports]
+      summary: Get accommodation metrics (optional date range; include=full for extra detail)
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+        - $ref: '#/components/parameters/StartDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+        - $ref: '#/components/parameters/IncludeQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metrics'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /accommodations/{accommodationId}/income:
+    get:
+      tags: [Metrics & Reports]
+      summary: Income report
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+        - $ref: '#/components/parameters/StartDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomeReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /accommodations/{accommodationId}/occupancy:
+    get:
+      tags: [Metrics & Reports]
+      summary: Occupancy stats
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+        - $ref: '#/components/parameters/YearQuery'
+        - $ref: '#/components/parameters/MonthQuery'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /accommodations/{accommodationId}/reports/ratings:
+    get:
+      tags: [Metrics & Reports]
+      summary: Ratings report by period
+      parameters:
+        - $ref: '#/components/parameters/AccommodationIdPath'
+        - $ref: '#/components/parameters/StartDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingsReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =========================
+  # /notifications/*
+  # =========================
+  /notifications/dispatch:
+    post:
+      tags: [Notifications]
+      summary: Dispatch a notification by type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, payload]
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - RESERVATION_CREATED_EMAIL
+                    - RESERVATION_CANCELLED_EMAIL
+                    - NEW_RESERVATION_HOST
+                    - NEW_REVIEW_HOST
+                    - CHECKIN_REMINDER
+                payload:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /notifications/user/{userId}:
+    get:
+      tags: [Notifications]
+      summary: List user notifications
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /notifications/{notificationId}/mark-read:
+    put:
+      tags: [Notifications]
+      summary: Mark notification as read
+      parameters:
+        - $ref: '#/components/parameters/NotificationIdPath'
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =========================
+  # /cities/*
+  # =========================
+  /cities/suggestions:
+    get:
+      tags: [Search & Cities]
+      summary: Autocomplete cities
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/QueryText'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    code:
+                      type: string
+                    country:
+                      type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
