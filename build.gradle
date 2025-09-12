@@ -1,8 +1,19 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.openapitools:openapi-generator-gradle-plugin:7.1.0"
+    }
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.5'
     id 'io.spring.dependency-management' version '1.1.7'
 }
+
+apply plugin: 'org.openapi.generator'
 
 group = 'co.edu.uniquindio'
 version = '0.0.1-SNAPSHOT'
@@ -28,8 +39,14 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.7'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -37,3 +54,59 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// ✅ Tarea única y correcta para generar código desde openapi.yaml
+tasks.named("openApiGenerate").configure {
+    generatorName = "spring"
+    inputSpec = "$rootDir/src/main/resources/openapi.yaml"
+    outputDir = "$buildDir/generated"
+    apiPackage = "co.edu.uniquindio.controllers"
+    modelPackage = "co.edu.uniquindio.models"
+    invokerPackage = "co.edu.uniquindio"
+
+    configOptions = [
+            dateLibrary            : "java8",
+            interfaceOnly          : "true",
+            useSpringBoot3         : "true",
+            useTags                : "true",
+            skipDefaultInterface   : "false",
+            serializationLibrary   : "jackson",
+            performBeanValidation  : "true",
+            useBeanValidation      : "true",
+            hideGenerationTimestamp: "true"
+    ]
+
+    globalProperties = [
+            models         : "",
+            apis           : "",
+            supportingFiles: ""
+    ]
+
+    doFirst {
+        def specFile = file(inputSpec)
+        if (!specFile.exists()) {
+            throw new GradleException("❌ El archivo openapi.yaml no fue encontrado en src/main/resources.")
+        }
+    }
+}
+
+// ✅ Generar antes de compilar
+compileJava.dependsOn tasks.named("openApiGenerate")
+
+// ✅ Incluir código generado en el classpath
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', "$buildDir/generated/src/main/java"]
+        }
+    }
+}
+
+// ✅ Limpieza del código generado
+tasks.register("cleanGenerated") {
+    doLast {
+        delete "$buildDir/generated"
+    }
+}
+
+clean.dependsOn tasks.named("cleanGenerated")

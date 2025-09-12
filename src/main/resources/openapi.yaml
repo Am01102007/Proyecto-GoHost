@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Booking Platform API
+  title: GoHost API
   version: "1.1.0"
   description: >
     API unificada para usuarios, alojamientos, anfitriones, reservas, imágenes, notificaciones y reportes.
