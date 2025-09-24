@@ -1,39 +1,46 @@
+
+/*
+ * build.gradle — Script de construcción (Gradle + Groovy)
+ * define plugins, dependencias y tareas para compilar/ejecutar
+ * una API REST en Spring Boot 3 con Java 17. Incluye JPA, Validación, Swagger y H2.
+ */
+
+//sección de plugins del proyecto (Java, Spring Boot y manejo de dependencias)
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.5'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version '3.2.5'
+    id 'io.spring.dependency-management' version '1.1.4'
 }
 
+//identidad del artefacto (paquete base y versión)
 group = 'co.edu.uniquindio'
-version = '0.0.1-SNAPSHOT'
-description = 'Breve descripción del proyecto'
+version = '1.0.0'
 
+//forzamos el uso de Java 17 para compilar/ejecutar
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
-}
-
+//de dónde descargar librerías (repositorio público principal)
 repositories {
     mavenCentral()
 }
 
+//dependencias necesarias para la app web, persistencia, validación y documentación
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.7'
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.springframework.boot:spring-boot-starter-web'         // REST + Tomcat embebido
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'    // JPA/Hibernate
+    implementation 'org.springframework.boot:spring-boot-starter-validation'  // Bean Validation
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'  // Swagger UI
+    runtimeOnly 'com.h2database:h2'                                           // BD en memoria para dev
+    compileOnly 'org.projectlombok:lombok'                                    // Lombok (solo compilación)
+    annotationProcessor 'org.projectlombok:lombok'                            // Procesador de Lombok
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'    // JUnit y helpers Spring
 }
 
-tasks.named('test') {
+//configuración de tests (JUnit 5)
+tasks.withType(Test).configureEach {
     useJUnitPlatform()
 }
