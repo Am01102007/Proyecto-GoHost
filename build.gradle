@@ -1,46 +1,27 @@
 
-/*
- * build.gradle — Script de construcción (Gradle + Groovy)
- * define plugins, dependencias y tareas para compilar/ejecutar
- * una API REST en Spring Boot 3 con Java 17. Incluye JPA, Validación, Swagger y H2.
- */
-
-//sección de plugins del proyecto (Java, Spring Boot y manejo de dependencias)
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.2.5'
-    id 'io.spring.dependency-management' version '1.1.4'
+    id 'org.springframework.boot' version '3.3.2'
+    id 'io.spring.dependency-management' version '1.1.5'
 }
-
-//identidad del artefacto (paquete base y versión)
 group = 'co.edu.uniquindio'
-version = '1.0.0'
-
-//forzamos el uso de Java 17 para compilar/ejecutar
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
-//de dónde descargar librerías (repositorio público principal)
-repositories {
-    mavenCentral()
-}
-
-//dependencias necesarias para la app web, persistencia, validación y documentación
+version = '1.4.8'
+java { sourceCompatibility = JavaVersion.VERSION_17 }
+repositories { mavenCentral() }
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'         // REST + Tomcat embebido
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'    // JPA/Hibernate
-    implementation 'org.springframework.boot:spring-boot-starter-validation'  // Bean Validation
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'  // Swagger UI
-    runtimeOnly 'com.h2database:h2'                                           // BD en memoria para dev
-    compileOnly 'org.projectlombok:lombok'                                    // Lombok (solo compilación)
-    annotationProcessor 'org.projectlombok:lombok'                            // Procesador de Lombok
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'    // JUnit y helpers Spring
-}
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.flywaydb:flyway-core:10.16.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.postgresql:postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // para usar JSON con Jackson
 
-//configuración de tests (JUnit 5)
-tasks.withType(Test).configureEach {
-    useJUnitPlatform()
 }
+tasks.named('test') { useJUnitPlatform() }
