@@ -1,4 +1,4 @@
-package co.edu.uniquindio.gohost.dto;
+package co.edu.uniquindio.gohost.dto.alojamientosDtos;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;

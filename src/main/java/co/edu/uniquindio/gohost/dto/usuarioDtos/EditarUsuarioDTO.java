@@ -1,4 +1,4 @@
-package co.edu.uniquindio.gohost.dto;
+package co.edu.uniquindio.gohost.dto.usuarioDtos;
 
 import co.edu.uniquindio.gohost.model.TipoDocumento;
 

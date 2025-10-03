@@ -1,4 +1,4 @@
-package co.edu.uniquindio.gohost.dto;
+package co.edu.uniquindio.gohost.dto.alojamientosDtos;
 
 import java.math.BigDecimal;
 import java.util.List; /** Editar alojamiento **/

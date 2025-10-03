@@ -1,13 +1,12 @@
-
 package co.edu.uniquindio.gohost.controller;
 
-import co.edu.uniquindio.gohost.dto.CambioPasswordDTO;
-import co.edu.uniquindio.gohost.dto.EditarUsuarioDTO;
-import co.edu.uniquindio.gohost.dto.ResetPasswordDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.CambioPasswordDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.EditarUsuarioDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.ResetPasswordDTO;
 import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.service.UsuarioService;
-import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +14,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-/** Operaciones de perfil de usuario **/
+/**
+ * Operaciones de perfil de usuario.
+ * Nota: el id del usuario autenticado se extrae del token (atributo "usuarioId" en la request).
+ */
 @RestController
 @RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
@@ -23,22 +25,31 @@ public class UsuarioController {
 
     private final UsuarioService service;
 
-    /** Lista paginada **/
+    /** Lista paginada de usuarios (si corresponde a tu caso de uso/rol). */
     @GetMapping
     public Page<Usuario> listar(@RequestParam(defaultValue = "0") int page,
                                 @RequestParam(defaultValue = "10") int size) {
         return service.listar(PageRequest.of(page, size));
     }
 
-    /** Obtener por ID **/
-    @GetMapping("/{id}")
+    /**
+     * Obtener el perfil del usuario autenticado.
+     * GET /api/usuarios/me
+     */
+    @GetMapping("/me")
     public Usuario obtener(HttpServletRequest request) {
-        UUID id = (UUID) request.getAttribute("usuarioId");
+        UUID id = (UUID) request.getAttribute("usuarioId"); // del token
         return service.obtener(id);
     }
-    /** Edición parcial **/
-    @PatchMapping("/{id}")
-    public Usuario editar(@PathVariable UUID id, @RequestBody EditarUsuarioDTO dto) {
+
+    /**
+     * Edición parcial del perfil del usuario autenticado.
+     * PATCH /api/usuarios/me
+     */
+    @PatchMapping("/me")
+    public Usuario editar(HttpServletRequest request, @RequestBody EditarUsuarioDTO dto) {
+        UUID id = (UUID) request.getAttribute("usuarioId"); // del token
+
         var parcial = new Usuario();
         parcial.setNombre(dto.nombre());
         parcial.setApellidos(dto.apellidos());
@@ -49,18 +60,25 @@ public class UsuarioController {
         parcial.setTipoDocumento(dto.tipoDocumento());
         parcial.setNumeroDocumento(dto.numeroDocumento());
         parcial.setEmail(dto.email());
+
         return service.actualizar(id, parcial);
     }
 
-    /** Cambiar password **/
-    @PutMapping("/{id}/password")
+    /**
+     * Cambio de contraseña del usuario autenticado.
+     * PUT /api/usuarios/me/password
+     */
+    @PutMapping("/me/password")
     public ResponseEntity<?> cambiarPassword(HttpServletRequest request, @RequestBody CambioPasswordDTO dto) {
-        UUID id = (UUID) request.getAttribute("usuarioId");
+        UUID id = (UUID) request.getAttribute("usuarioId"); // del token
         service.cambiarPassword(id, dto.actual(), dto.nueva());
         return ResponseEntity.ok().build();
     }
 
-    /** Reset password **/
+    /**
+     * Solicitar reseteo de contraseña por email (flujo público).
+     * POST /api/usuarios/password/reset
+     */
     @PostMapping("/password/reset")
     public ResponseEntity<?> reset(@RequestBody ResetPasswordDTO dto) {
         service.resetPassword(dto.email());

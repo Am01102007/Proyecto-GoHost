@@ -1,4 +1,4 @@
-package co.edu.uniquindio.gohost.dto;
+package co.edu.uniquindio.gohost.dto.reservaDtos;
 
 import java.time.LocalDate;
 import java.util.UUID; /** Crear reserva **/

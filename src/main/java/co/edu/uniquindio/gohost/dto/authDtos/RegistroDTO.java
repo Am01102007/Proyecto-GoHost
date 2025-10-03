@@ -1,4 +1,4 @@
-package co.edu.uniquindio.gohost.dto;
+package co.edu.uniquindio.gohost.dto.authDtos;
 
 import co.edu.uniquindio.gohost.model.TipoDocumento;
 import jakarta.validation.constraints.Email;

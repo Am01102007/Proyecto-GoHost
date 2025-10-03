@@ -1,9 +1,8 @@
-
 package co.edu.uniquindio.gohost.controller;
 
-import co.edu.uniquindio.gohost.dto.CrearAlojDTO;
-import co.edu.uniquindio.gohost.dto.EditAlojDTO;
-import co.edu.uniquindio.gohost.dto.FiltroBusquedaDTO;
+import co.edu.uniquindio.gohost.dto.alojamientosDtos.CrearAlojDTO;
+import co.edu.uniquindio.gohost.dto.alojamientosDtos.EditAlojDTO;
+import co.edu.uniquindio.gohost.dto.alojamientosDtos.FiltroBusquedaDTO;
 import co.edu.uniquindio.gohost.model.Alojamiento;
 import co.edu.uniquindio.gohost.model.Direccion;
 import co.edu.uniquindio.gohost.service.AlojamientoService;
@@ -16,7 +15,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.UUID;
 
-/** Gestión de alojamientos y búsqueda **/
+/**
+ * Controlador REST para gestión de alojamientos.
+ * Nota: el id del anfitrión se obtiene del token (atributos en la request),
+ * no desde la URL, para evitar suplantaciones.
+ */
 @RestController
 @RequestMapping("/api/alojamientos")
 @RequiredArgsConstructor
@@ -24,14 +27,19 @@ public class AlojamientoController {
 
     private final AlojamientoService service;
 
-    /** Crea alojamiento **/
-    @PostMapping("/{anfitrionId}")
+    /**
+     * Crea un alojamiento para el anfitrión autenticado.
+     * Requiere rol ANFITRION (validado desde el token/JWTFilter).
+     */
+    @PostMapping
     public Alojamiento crear(@RequestBody CrearAlojDTO dto, HttpServletRequest request) {
         String rol = (String) request.getAttribute("rol");
         if (!"ANFITRION".equals(rol)) {
             throw new RuntimeException("Solo los anfitriones pueden crear alojamientos");
         }
-        UUID anfitrionId = (UUID) request.getAttribute("usuarioId");
+
+        UUID anfitrionId = (UUID) request.getAttribute("usuarioId"); // del token
+
         var a = Alojamiento.builder()
                 .titulo(dto.titulo())
                 .descripcion(dto.descripcion())
@@ -40,30 +48,39 @@ public class AlojamientoController {
                 .capacidad(dto.capacidad())
                 .fotos(dto.fotos() == null ? new ArrayList<>() : dto.fotos())
                 .build();
+
         return service.crear(anfitrionId, a);
     }
 
-    /** Listar **/
+    /** Lista paginada de todos los alojamientos. */
     @GetMapping
     public Page<Alojamiento> listar(@RequestParam(defaultValue = "0") int page,
                                     @RequestParam(defaultValue = "10") int size) {
         return service.listar(PageRequest.of(page, size));
     }
 
-    /** Por anfitrión **/
-    @GetMapping("/anfitrion/{anfitrionId}")
+    /**
+     * Lista los alojamientos del anfitrión autenticado.
+     * El anfitrión se toma del token (no de la URL).
+     */
+    @GetMapping("/anfitrion")
     public Page<Alojamiento> porAnfitrion(HttpServletRequest request,
                                           @RequestParam(defaultValue = "0") int page,
                                           @RequestParam(defaultValue = "10") int size) {
-        UUID anfitrionId = (UUID) request.getAttribute("usuarioId");
+        UUID anfitrionId = (UUID) request.getAttribute("usuarioId"); // del token
         return service.listarPorAnfitrion(anfitrionId, PageRequest.of(page, size));
     }
 
-    /** Obtener **/
+    /** Obtiene un alojamiento por su ID. */
     @GetMapping("/{id}")
-    public Alojamiento obtener(@PathVariable UUID id) { return service.obtener(id); }
+    public Alojamiento obtener(@PathVariable UUID id) {
+        return service.obtener(id);
+    }
 
-    /** Actualizar **/
+    /**
+     * Actualiza parcialmente un alojamiento por ID.
+     * (Valida permisos en la capa de servicio si corresponde).
+     */
     @PatchMapping("/{id}")
     public Alojamiento actualizar(@PathVariable UUID id, @RequestBody EditAlojDTO dto) {
         var parcial = new Alojamiento();
@@ -77,11 +94,15 @@ public class AlojamientoController {
         return service.actualizar(id, parcial);
     }
 
-    /** Eliminar **/
+    /** Elimina un alojamiento por ID. */
     @DeleteMapping("/{id}")
-    public void eliminar(@PathVariable UUID id) { service.eliminar(id); }
+    public void eliminar(@PathVariable UUID id) {
+        service.eliminar(id);
+    }
 
-    /** Buscar con filtros **/
+    /**
+     * Búsqueda con filtros (ciudad, capacidad) y paginación.
+     */
     @PostMapping("/search")
     public Page<Alojamiento> buscar(@RequestBody FiltroBusquedaDTO f) {
         int page = f.page() == null ? 0 : f.page();
