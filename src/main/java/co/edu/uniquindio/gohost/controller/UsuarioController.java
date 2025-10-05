@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -32,14 +33,16 @@ public class UsuarioController {
         return service.listar(PageRequest.of(page, size));
     }
 
+
     /**
      * Obtener el perfil del usuario autenticado.
      * GET /api/usuarios/me
      */
     @GetMapping("/me")
     public Usuario obtener(HttpServletRequest request) {
-        UUID id = (UUID) request.getAttribute("usuarioId"); // del token
-        return service.obtener(id);
+        String id = SecurityContextHolder.getContext().getAuthentication().getName();
+        UUID id2= UUID.fromString(id);
+        return service.obtener(id2);
     }
 
     /**
@@ -48,7 +51,8 @@ public class UsuarioController {
      */
     @PatchMapping("/me")
     public Usuario editar(HttpServletRequest request, @RequestBody EditarUsuarioDTO dto) {
-        UUID id = (UUID) request.getAttribute("usuarioId"); // del token
+        String id = SecurityContextHolder.getContext().getAuthentication().getName();
+        UUID id2 = UUID.fromString(id);
 
         var parcial = new Usuario();
         parcial.setNombre(dto.nombre());
@@ -61,17 +65,17 @@ public class UsuarioController {
         parcial.setNumeroDocumento(dto.numeroDocumento());
         parcial.setEmail(dto.email());
 
-        return service.actualizar(id, parcial);
+        return service.actualizar(id2, parcial);
     }
-
     /**
      * Cambio de contraseña del usuario autenticado.
      * PUT /api/usuarios/me/password
      */
     @PutMapping("/me/password")
     public ResponseEntity<?> cambiarPassword(HttpServletRequest request, @RequestBody CambioPasswordDTO dto) {
-        UUID id = (UUID) request.getAttribute("usuarioId"); // del token
-        service.cambiarPassword(id, dto.actual(), dto.nueva());
+        String id = SecurityContextHolder.getContext().getAuthentication().getName();
+        UUID id2 = UUID.fromString(id);
+        service.cambiarPassword(id2, dto.actual(), dto.nueva());
         return ResponseEntity.ok().build();
     }
 
@@ -84,4 +88,5 @@ public class UsuarioController {
         service.resetPassword(dto.email());
         return ResponseEntity.ok().build();
     }
+
 }

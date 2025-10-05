@@ -58,6 +58,7 @@ public class AuthController {
                 .pais(dto.pais())
                 .password(dto.password())
                 .rol(Rol.HUESPED)
+                .activo(true)
                 .build();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarios.crear(u));

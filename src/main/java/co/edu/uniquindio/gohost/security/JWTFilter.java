@@ -133,4 +133,5 @@ public class JWTFilter extends OncePerRequestFilter {
         }
         return header.substring(BEARER_PREFIX.length()).trim();
     }
+
 }

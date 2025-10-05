@@ -74,6 +74,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",           // Autenticación
                                 "/swagger-ui/**",         // Swagger UI
+                                "/api/usuarios/password/reset",// Ruta pública para el reset de contraseñas
                                 "/v3/api-docs/**",        // OpenAPI docs
                                 "/openapi.yaml",          // Especificación OpenAPI
                                 "/api-docs/**",           // Documentación

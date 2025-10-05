@@ -67,8 +67,27 @@ public class UsuarioServiceImpl implements UsuarioService {
         if (StringUtils.hasText(parcial.getPais())) u.setPais(parcial.getPais());
         if (parcial.getFechaNacimiento() != null) u.setFechaNacimiento(parcial.getFechaNacimiento());
         if (parcial.getTipoDocumento() != null) u.setTipoDocumento(parcial.getTipoDocumento());
-        if (StringUtils.hasText(parcial.getNumeroDocumento())) u.setNumeroDocumento(parcial.getNumeroDocumento());
-        if (StringUtils.hasText(parcial.getEmail())) u.setEmail(parcial.getEmail());
+        if (StringUtils.hasText(parcial.getNumeroDocumento())) {
+            // Verificar que no esté cambiando a un documento ya existente
+            if (!parcial.getNumeroDocumento().equals(u.getNumeroDocumento())) {
+                if (repo.existsByNumeroDocumento(parcial.getNumeroDocumento())) {
+                    throw new IllegalArgumentException("Ya existe un usuario con ese número de documento");
+                }
+            }
+            u.setNumeroDocumento(parcial.getNumeroDocumento());
+        }
+        // Validar email
+        if (StringUtils.hasText(parcial.getEmail())) {
+            if (!parcial.getEmail().equals(u.getEmail())) {
+                if (repo.existsByEmail(parcial.getEmail())) {
+                    throw new IllegalArgumentException("Ya existe un usuario con ese correo");
+                }
+            }
+            u.setEmail(parcial.getEmail());
+        }
+
+
+
 
         return repo.save(u);
     }
