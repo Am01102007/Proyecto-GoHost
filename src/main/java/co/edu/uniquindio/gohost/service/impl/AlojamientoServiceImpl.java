@@ -2,6 +2,9 @@ package co.edu.uniquindio.gohost.service.impl;
 
 import co.edu.uniquindio.gohost.model.Alojamiento;
 import co.edu.uniquindio.gohost.model.Rol;
+import co.edu.uniquindio.gohost.model.Direccion;
+import co.edu.uniquindio.gohost.service.geocoding.GeocodingService;
+import lombok.extern.slf4j.Slf4j;
 import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.repository.AlojamientoRepository;
 import co.edu.uniquindio.gohost.repository.UsuarioRepository;
@@ -24,6 +27,7 @@ import java.util.UUID;
  *  - Campos se actualizan parcialmente (solo los no nulos / no vacíos).
  *  - Búsqueda flexible por ciudad/capacidad delegada al repositorio.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -31,7 +35,7 @@ public class AlojamientoServiceImpl implements AlojamientoService {
 
     private final AlojamientoRepository alojamientoRepository;
     private final UsuarioRepository usuarioRepository;
-
+    private final GeocodingService geocodingService;
     /**
      * Crea un alojamiento para el anfitrión indicado.
      */
@@ -45,7 +49,7 @@ public class AlojamientoServiceImpl implements AlojamientoService {
             throw new IllegalArgumentException("El usuario no tiene rol ANFITRION");
         }
 
-        // 2) Defaults y normalización
+        // 2) Defaults
         if (alojamiento.getActivo() == null) {
             alojamiento.setActivo(true);
         }
@@ -53,7 +57,12 @@ public class AlojamientoServiceImpl implements AlojamientoService {
             alojamiento.setFotos(new ArrayList<>());
         }
 
-        // 3) Asociar propietario y persistir
+        // 3) GEOCODIFICAR DIRECCIÓN (NUEVO)
+        if (alojamiento.getDireccion() != null) {
+            geocodificarDireccion(alojamiento.getDireccion());
+        }
+
+        // 4) Asociar y persistir
         alojamiento.setAnfitrion(anfitrion);
         return alojamientoRepository.save(alojamiento);
     }
@@ -102,9 +111,13 @@ public class AlojamientoServiceImpl implements AlojamientoService {
         if (StringUtils.hasText(parcial.getDescripcion())) {
             existente.setDescripcion(parcial.getDescripcion());
         }
+
+
         if (parcial.getDireccion() != null) {
+            geocodificarDireccion(parcial.getDireccion());  // Geocodificar antes de guardar
             existente.setDireccion(parcial.getDireccion());
         }
+
         if (parcial.getPrecioNoche() != null) {
             existente.setPrecioNoche(parcial.getPrecioNoche());
         }
@@ -120,7 +133,6 @@ public class AlojamientoServiceImpl implements AlojamientoService {
 
         return alojamientoRepository.save(existente);
     }
-
     /**
      * Elimina un alojamiento por id.
      */
@@ -148,5 +160,42 @@ public class AlojamientoServiceImpl implements AlojamientoService {
             return alojamientoRepository.findAll(pageable);
         }
         return alojamientoRepository.search(sinCiudad ? null : ciudad, capacidad, pageable);
+    }
+    /**
+     * Geocodifica la dirección y actualiza las coordenadas automáticamente.
+     * No falla la operación si la geocodificación no funciona.
+     */
+    private void geocodificarDireccion(Direccion direccion) {
+        if (direccion == null) {
+            return;
+        }
+
+        try {
+            String direccionCompleta = direccion.getDireccionCompleta();
+
+            if (!StringUtils.hasText(direccionCompleta)) {
+                log.debug("Dirección vacía, no se puede geocodificar");
+                return;
+            }
+
+            var coordenadas = geocodingService.obtenerCoordenadas(
+                    direccionCompleta,
+                    direccion.getCiudad(),
+                    direccion.getPais()
+            );
+
+            if (coordenadas != null) {
+                direccion.setLatitud(coordenadas.latitud());
+                direccion.setLongitud(coordenadas.longitud());
+                log.info("Geocodificación exitosa: {} -> [{}, {}]",
+                        direccionCompleta, coordenadas.latitud(), coordenadas.longitud());
+            } else {
+                log.warn("No se obtuvieron coordenadas para: {}", direccionCompleta);
+            }
+        } catch (Exception e) {
+            log.error("Error geocodificando dirección: {}",
+                    direccion.getDireccionCompleta(), e);
+            // No lanzamos excepción - la geocodificación es opcional
+        }
     }
 }

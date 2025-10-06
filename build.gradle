@@ -44,6 +44,7 @@ dependencies {
     // =========================================================
     // SPRING BOOT CORE
     // =========================================================
+    implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
     implementation 'org.springframework.boot:spring-boot-starter-web'       // Controladores REST
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'  // Persistencia JPA/Hibernate
     implementation 'org.springframework.boot:spring-boot-starter-validation'// Validaciones con jakarta.validation
@@ -67,7 +68,8 @@ dependencies {
     // EMAIL (nuevo)
     // =========================================================
     // Proporciona JavaMailSender y soporte SMTP (correo electrónico)
-    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.simplejavamail:simple-java-mail:8.12.6'
+    implementation 'org.simplejavamail:batch-module:8.12.6'
 
     // =========================================================
     // UTILIDADES Y SOPORTE

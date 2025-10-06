@@ -1,33 +1,31 @@
 package co.edu.uniquindio.gohost.service.mail;
 
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
-import org.springframework.mail.MailSendException;
-import org.springframework.core.io.InputStreamSource;
-
-import java.util.Collection;
-import java.util.Map;
 
 /**
  * ============================================================================
- * MailService — Contrato para envío de correos transaccionales
+ * 📧 MailService — Contrato para el envío de correos transaccionales
  * ============================================================================
  *
  * Responsabilidades:
- *  - Enviar correos en HTML (UTF-8) y texto plano.
- *  - Soportar CC/BCC y adjuntos (opcional).
- *  - Exponer una API sencilla para casos comunes de negocio.
+ *  - Enviar correos electrónicos en formato HTML (UTF-8).
+ *  - Centralizar la lógica de notificaciones por correo dentro del sistema GoHost.
+ *
+ * Características:
+ *  - Soporta HTML con codificación UTF-8.
+ *  - Expone una API sencilla orientada a casos comunes de negocio.
  *
  * Reglas generales:
- *  - Los métodos NO deben lanzar excepciones checked. Cualquier error se envuelve
- *    en {@link MailSendException}.
- *  - La implementación debe leer la configuración de correo desde application.yml:
+ *  - Los métodos pueden lanzar excepciones controladas de tipo {@link Exception}
+ *    si ocurre un error durante el envío (autenticación, red, formato, etc.).
+ *  - Los parámetros obligatorios deben ser validados antes del envío.
+ *  - La configuración SMTP se obtiene desde el archivo `application.yml`:
  *
- *      spring.mail.host, spring.mail.port, spring.mail.username, spring.mail.password, etc.
+ *        spring.mail.host, spring.mail.port, spring.mail.username, spring.mail.password
  *
  * Buenas prácticas:
- *  - No loggear contenido sensible (tokens, contraseñas). En logs, incluir solo metadatos.
- *  - Preservar codificación UTF-8 para sujetos y cuerpos.
+ *  - No incluir información sensible (contraseñas o tokens) en los logs.
+ *  - Mantener la codificación UTF-8 en el asunto y cuerpo del correo.
  */
 public interface MailService {
 
@@ -38,42 +36,9 @@ public interface MailService {
      * @param to      destinatario principal (obligatorio)
      * @param subject asunto del correo (obligatorio)
      * @param html    cuerpo en HTML (obligatorio)
-     * @throws MailSendException si ocurre un error al enviar
      */
-    void enviar(@NonNull String to,
+    void sendMail(@NonNull String to,
                 @NonNull String subject,
-                @NonNull String html) throws MailSendException;
+                @NonNull String html) throws Exception;
 
-    /**
-     * Envío de correo en texto plano (sin HTML).
-     *
-     * @param to      destinatario principal (obligatorio)
-     * @param subject asunto del correo (obligatorio)
-     * @param text    cuerpo en texto plano (obligatorio)
-     * @throws MailSendException si ocurre un error al enviar
-     */
-    void enviarTexto(@NonNull String to,
-                     @NonNull String subject,
-                     @NonNull String text) throws MailSendException;
-
-    /**
-     * Envío avanzado con CC/BCC y adjuntos. El cuerpo puede ser HTML o texto plano según el flag.
-     *
-     * @param to            destinatario principal (obligatorio)
-     * @param cc            colección de CC (puede ser null o vacía)
-     * @param bcc           colección de BCC (puede ser null o vacía)
-     * @param subject       asunto (obligatorio)
-     * @param body          cuerpo (obligatorio)
-     * @param isHtml        true para HTML, false para texto plano
-     * @param attachments   mapa nombreArchivo -> contenido (InputStreamSource),
-     *                      puede ser null o vacío. Ej: ByteArrayResource, FileSystemResource.
-     * @throws MailSendException si ocurre un error al enviar
-     */
-    void enviarAvanzado(@NonNull String to,
-                        @Nullable Collection<String> cc,
-                        @Nullable Collection<String> bcc,
-                        @NonNull String subject,
-                        @NonNull String body,
-                        boolean isHtml,
-                        @Nullable Map<String, InputStreamSource> attachments) throws MailSendException;
 }

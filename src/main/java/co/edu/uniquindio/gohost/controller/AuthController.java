@@ -63,6 +63,42 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarios.crear(u));
     }
+    /**
+     * Registra un nuevo usuario con rol ANFITRION por defecto.
+     * La contraseña se encripta en UsuarioServiceImpl antes de persistir.
+     *
+     * @param dto datos de registro
+     * @return usuario creado (HTTP 201)
+     */
+    @PostMapping("/register/anfitrion")
+    public ResponseEntity<Usuario> registerHost(@Valid @RequestBody RegistroDTO dto) {
+        // Unicidad por email
+        if (usuarios.existePorEmail(dto.email())) {
+            throw new RuntimeException("Ya existe un usuario con ese correo");
+        }
+        // Unicidad por número de documento
+        if (usuarios.existePorNumeroDocumento(dto.numeroDocumento())) {
+            throw new RuntimeException("Ya existe un usuario con ese número de documento");
+        }
+
+        // Construcción del usuario (el password se encripta en el service)
+        var u = Usuario.builder()
+                .email(dto.email())
+                .nombre(dto.nombre())
+                .apellidos(dto.apellidos())
+                .tipoDocumento(dto.tipoDocumento())
+                .numeroDocumento(dto.numeroDocumento())
+                .fechaNacimiento(dto.fechaNacimiento())
+                .telefono(dto.telefono())
+                .ciudad(dto.ciudad())
+                .pais(dto.pais())
+                .password(dto.password())
+                .rol(Rol.ANFITRION)
+                .activo(true)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(usuarios.crear(u));
+    }
 
     /**
      * Autentica al usuario y retorna un JWT si las credenciales son válidas.

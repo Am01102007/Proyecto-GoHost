@@ -1,4 +1,3 @@
-
 package co.edu.uniquindio.gohost.model;
 
 import jakarta.persistence.*;
@@ -11,13 +10,23 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/** Entidad de usuario con identidad, contacto, credenciales y rol **/
+/**
+ * ============================================================================
+ * Usuario — Entidad de usuario con identidad, contacto, credenciales, rol
+ * y ubicación geográfica (dirección + coordenadas).
+ * ============================================================================
+ */
 @Entity
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Usuario {
 
     /** ID único **/
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue
     private UUID id;
 
     /** Tipo de documento **/
@@ -29,11 +38,14 @@ public class Usuario {
     private String numeroDocumento;
 
     /** Correo (único) **/
-    @Email @NotBlank @Column(unique = true)
+    @Email
+    @NotBlank
+    @Column(unique = true)
     private String email;
 
     /** Nombres **/
-    @NotBlank @Size(min = 2, max = 80)
+    @NotBlank
+    @Size(min = 2, max = 80)
     private String nombre;
 
     /** Apellidos **/
@@ -51,7 +63,20 @@ public class Usuario {
     /** País **/
     private String pais;
 
-    /** Contraseña (demo) **/
+    /**
+     * Dirección completa (usada para geocodificación).
+     * Puede ser calle + número + barrio.
+     */
+    @Column(length = 255)
+    private String direccion;
+
+    /**
+     * Coordenadas WGS84 obtenidas al geocodificar la dirección.
+     */
+    private Double latitud;
+    private Double longitud;
+
+    /** Contraseña **/
     @NotBlank
     private String password;
 
@@ -77,5 +102,7 @@ public class Usuario {
 
     /** Actualiza timestamp **/
     @PreUpdate
-    void preUpdate() { actualizadoEn = LocalDateTime.now(); }
+    void preUpdate() {
+        actualizadoEn = LocalDateTime.now();
+    }
 }

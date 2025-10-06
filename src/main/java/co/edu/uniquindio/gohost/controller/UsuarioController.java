@@ -1,10 +1,12 @@
 package co.edu.uniquindio.gohost.controller;
 
 import co.edu.uniquindio.gohost.dto.usuarioDtos.CambioPasswordDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.ConfirmarResetPasswordDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.EditarUsuarioDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.ResetPasswordDTO;
 import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.service.UsuarioService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -80,13 +82,34 @@ public class UsuarioController {
     }
 
     /**
-     * Solicitar reseteo de contraseña por email (flujo público).
-     * POST /api/usuarios/password/reset
+     * Solicita el reseteo de contraseña enviando un token al correo del usuario.
+     * Flujo público: no requiere autenticación.
      */
     @PostMapping("/password/reset")
-    public ResponseEntity<?> reset(@RequestBody ResetPasswordDTO dto) {
-        service.resetPassword(dto.email());
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> solicitarResetPassword(@RequestBody ResetPasswordDTO dto) {
+        try {
+            service.resetPassword(dto.email());
+            return ResponseEntity.accepted().body("Se ha enviado un enlace de recuperación a tu correo.");
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(404).body("No existe un usuario con ese correo.");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al procesar la solicitud de restablecimiento.");
+        }
     }
+    @PutMapping("/password/confirm")
+    public ResponseEntity<String> confirmarResetPassword(@RequestBody ConfirmarResetPasswordDTO dto) {
+        try {
+            service.confirmarResetPassword(dto.token(), dto.nuevaPassword());
+            return ResponseEntity.ok("Contraseña restablecida correctamente");
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(404).body("Código inválido");
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(410).body("El código ha expirado");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al restablecer contraseña");
+        }
+    }
+
+
 
 }

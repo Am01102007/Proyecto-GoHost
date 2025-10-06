@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -42,11 +43,6 @@ public class SecurityConfig {
     private final JWTFilter jwtFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    @Value("${cors.allowed-origins:http://localhost:4200,http://localhost:3000}")
-    private String allowedOrigins;
-
-    @Value("${cors.allowed-methods:GET,POST,PUT,DELETE,OPTIONS,PATCH,HEAD}")
-    private String allowedMethods;
 
     /**
      * Configuración principal de seguridad para la API.
@@ -54,14 +50,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.info("Configurando seguridad de la aplicación...");
-        log.info("Orígenes CORS permitidos: {}", allowedOrigins);
 
         return http
                 // Deshabilitar CSRF para APIs REST
                 .csrf(AbstractHttpConfigurer::disable)
 
                 // Configuración CORS
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(Customizer.withDefaults())
 
                 // Sesiones stateless
                 .sessionManagement(session -> session
@@ -75,6 +70,7 @@ public class SecurityConfig {
                                 "/api/auth/**",           // Autenticación
                                 "/swagger-ui/**",         // Swagger UI
                                 "/api/usuarios/password/reset",// Ruta pública para el reset de contraseñas
+                                "/api/usuarios/password/confirm",
                                 "/v3/api-docs/**",        // OpenAPI docs
                                 "/openapi.yaml",          // Especificación OpenAPI
                                 "/api-docs/**",           // Documentación
@@ -108,48 +104,6 @@ public class SecurityConfig {
                 .build();
     }
 
-    /**
-     * Configuración CORS autocontenida.
-     */
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-
-        // Orígenes permitidos
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-
-        // Métodos HTTP permitidos
-        configuration.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
-
-        // Headers permitidos
-        configuration.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "X-Requested-With",
-                "Accept",
-                "Origin",
-                "Access-Control-Request-Method",
-                "Access-Control-Request-Headers",
-                "Cache-Control",
-                "X-API-Key"
-        ));
-
-        // Headers expuestos
-        configuration.setExposedHeaders(List.of(
-                "Authorization",
-                "Content-Disposition",
-                "X-Total-Count",
-                "X-API-Version"
-        ));
-
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L); // 1 hora cache preflight
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-
-        return source;
-    }
 
     /**
      * Password encoder seguro con BCrypt.

@@ -43,7 +43,7 @@ public class AlojamientoController {
         var a = Alojamiento.builder()
                 .titulo(dto.titulo())
                 .descripcion(dto.descripcion())
-                .direccion(new Direccion(dto.ciudad(), dto.pais(), dto.calle(), dto.zip()))
+                .direccion(dto.toDireccion())
                 .precioNoche(dto.precioNoche())
                 .capacidad(dto.capacidad())
                 .fotos(dto.fotos() == null ? new ArrayList<>() : dto.fotos())
@@ -86,7 +86,7 @@ public class AlojamientoController {
         var parcial = new Alojamiento();
         parcial.setTitulo(dto.titulo());
         parcial.setDescripcion(dto.descripcion());
-        parcial.setDireccion(new Direccion(dto.ciudad(), dto.pais(), dto.calle(), dto.zip()));
+        parcial.setDireccion(dto.toDireccion());
         parcial.setPrecioNoche(dto.precioNoche());
         parcial.setCapacidad(dto.capacidad());
         if (dto.fotos() != null) parcial.setFotos(dto.fotos());

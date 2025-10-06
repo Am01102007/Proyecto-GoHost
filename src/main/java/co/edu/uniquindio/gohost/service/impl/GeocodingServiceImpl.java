@@ -76,7 +76,7 @@ public class GeocodingServiceImpl implements GeocodingService {
             headers.setAcceptCharset(List.of(StandardCharsets.UTF_8));
             headers.set(HttpHeaders.USER_AGENT, "gohost-app/1.0 (contacto: soporte@gohost.com)");
 
-            // Si en el futuro usas un proveedor con API key
+            // Si en el futuro se usa proveedor con API key
             if (StringUtils.hasText(props.getApiKey())) {
                 // Ejemplos:
                 // headers.set("Authorization", "Bearer " + props.getApiKey());
