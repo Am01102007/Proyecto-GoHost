@@ -103,8 +103,26 @@ public class UsuarioServiceImpl implements UsuarioService {
      */
     @Override
     public Optional<Usuario> login(String email, String password) {
-        return repo.findByEmail(email)
-                .filter(u -> passwordEncoder.matches(password, u.getPassword()) && u.isActivo());
+        log.info("=== INTENTO DE LOGIN ===");
+        log.info("Email recibido: {}", email);
+
+        Optional<Usuario> usuarioOpt = repo.findByEmail(email);
+
+        if (usuarioOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Usuario u = usuarioOpt.get();
+
+        boolean passwordMatch = passwordEncoder.matches(password, u.getPassword());
+
+        if (!passwordMatch) {
+            return Optional.empty();
+        }
+        if (!u.isActivo()) {
+            return Optional.empty();
+        }
+        return Optional.of(u);
     }
 
     /**

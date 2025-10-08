@@ -7,11 +7,18 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "alojamientos")
+@Table(
+        name = "alojamientos",
+        indexes = {
+                @Index(name = "idx_aloj_anfitrion", columnList = "anfitrion_id"),
+                @Index(name = "idx_aloj_ciudad", columnList = "direccion_ciudad") // depende de @Embeddable Direccion
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -28,9 +35,18 @@ public class Alojamiento {
     @Column(nullable = false, length = 200)
     private String titulo;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String descripcion;
 
+    /**
+     * Se asume que Direccion es @Embeddable con campos:
+     *  - direccion (línea)
+     *  - ciudad
+     *  - pais
+     *  - latitud, longitud (opcional)
+     * Sugerencia: en Direccion anotar @Column(name="direccion_ciudad") para el campo ciudad,
+     * así coincide con el índice idx_aloj_ciudad.
+     */
     @Embedded
     private Direccion direccion;
 
@@ -40,19 +56,24 @@ public class Alojamiento {
     @Column(nullable = false)
     private Integer capacidad;
 
+    /**
+     * URLs (por ejemplo de Cloudinary). Se guarda el orden de inserción.
+     */
     @ElementCollection
     @CollectionTable(
             name = "alojamiento_fotos",
-            joinColumns = @JoinColumn(name = "alojamiento_id")
+            joinColumns = @JoinColumn(name = "alojamiento_id", nullable = false)
     )
-    @Column(name = "foto_url", length = 500)
-    private List<String> fotos;
+    @OrderColumn(name = "orden")
+    @Column(name = "foto_url", length = 500, nullable = false)
+    @Builder.Default
+    private List<String> fotos = new ArrayList<>();
 
     @Column(nullable = false)
     @Builder.Default
     private Boolean activo = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "anfitrion_id", nullable = false)
     private Usuario anfitrion;
 
@@ -83,5 +104,17 @@ public class Alojamiento {
 
     public void desactivar() {
         this.activo = false;
+    }
+
+    public void agregarFoto(String url) {
+        if (url != null && !url.isBlank()) {
+            this.fotos.add(url);
+        }
+    }
+
+    public void eliminarFoto(String url) {
+        if (url != null) {
+            this.fotos.remove(url);
+        }
     }
 }

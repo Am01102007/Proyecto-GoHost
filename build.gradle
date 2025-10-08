@@ -3,11 +3,8 @@
 // Proyecto: GoHost
 // ============================================================
 //
-// Este archivo define:
-// - Plugins esenciales de Spring Boot y Lombok
-// - Dependencias para Web, JPA, Seguridad, JWT y Correo
-// - Repositorio Maven Central como fuente de librerías
-// - Configuración de compatibilidad con Java 17
+// Plugins, dependencias para Web, JPA, Seguridad, JWT, Correo,
+// y Cloudinary para servicio de imágenes.
 // ============================================================
 
 plugins {
@@ -45,47 +42,56 @@ dependencies {
     // SPRING BOOT CORE
     // =========================================================
     implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
-    implementation 'org.springframework.boot:spring-boot-starter-web'       // Controladores REST
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'  // Persistencia JPA/Hibernate
-    implementation 'org.springframework.boot:spring-boot-starter-validation'// Validaciones con jakarta.validation
-    implementation 'org.springframework.boot:spring-boot-starter-security'  // Seguridad y autenticación
+    implementation 'org.springframework.boot:spring-boot-starter-web'        // REST
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'   // JPA/Hibernate
+    implementation 'org.springframework.boot:spring-boot-starter-validation' // jakarta.validation
+    implementation 'org.springframework.boot:spring-boot-starter-security'   // Seguridad
 
     // =========================================================
     // BASE DE DATOS
     // =========================================================
-    implementation 'org.flywaydb:flyway-core:10.16.0'  // Migraciones de base de datos
-    runtimeOnly 'org.postgresql:postgresql'            // Driver PostgreSQL
-    runtimeOnly 'com.h2database:h2'                    // Base de datos en memoria (tests / dev)
+    implementation 'org.flywaydb:flyway-core:10.16.0' // Migraciones (si se usa)
+    runtimeOnly 'org.postgresql:postgresql'           // Driver PostgreSQL
+    runtimeOnly 'com.h2database:h2'                   // DB en memoria (dev/tests)
 
     // =========================================================
-    // JWT (manejo de tokens)
+    // JWT (tokens)
     // =========================================================
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // Serialización JSON con Jackson
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
     // =========================================================
-    // EMAIL (nuevo)
+    // EMAIL
     // =========================================================
-    // Proporciona JavaMailSender y soporte SMTP (correo electrónico)
     implementation 'org.simplejavamail:simple-java-mail:8.12.6'
     implementation 'org.simplejavamail:batch-module:8.12.6'
 
     // =========================================================
+    // CLOUDINARY (NUEVO) — Servicio de imágenes
+    // =========================================================
+    implementation 'com.cloudinary:cloudinary-http44:1.39.0'
+
+    // =========================================================
+    // SWAGGER / OPENAPI (opcional, si usas /swagger-ui)
+    // =========================================================
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+
+    // =========================================================
     // UTILIDADES Y SOPORTE
     // =========================================================
-    compileOnly 'org.projectlombok:lombok:1.18.32'         // Lombok en tiempo de compilación
-    annotationProcessor 'org.projectlombok:lombok:1.18.32' // Procesador de anotaciones Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
 
     // =========================================================
     // TESTING
     // =========================================================
-    testImplementation 'org.springframework.boot:spring-boot-starter-test' // Suite de pruebas JUnit y MockMVC
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 // ------------------------------------------------------------
 // Configuración de ejecución de pruebas
 // ------------------------------------------------------------
 tasks.named('test') {
-    useJUnitPlatform() // Usa JUnit 5 (moderno y compatible con Spring Boot 3)
+    useJUnitPlatform()
 }

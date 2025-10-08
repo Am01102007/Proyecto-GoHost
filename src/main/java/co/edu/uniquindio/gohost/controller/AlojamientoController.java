@@ -4,12 +4,12 @@ import co.edu.uniquindio.gohost.dto.alojamientosDtos.CrearAlojDTO;
 import co.edu.uniquindio.gohost.dto.alojamientosDtos.EditAlojDTO;
 import co.edu.uniquindio.gohost.dto.alojamientosDtos.FiltroBusquedaDTO;
 import co.edu.uniquindio.gohost.model.Alojamiento;
-import co.edu.uniquindio.gohost.model.Direccion;
 import co.edu.uniquindio.gohost.service.AlojamientoService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -29,18 +29,15 @@ public class AlojamientoController {
 
     /**
      * Crea un alojamiento para el anfitrión autenticado.
-     * Requiere rol ANFITRION (validado desde el token/JWTFilter).
+     * Requiere rol ANFITRION (validado automáticamente por Spring Security).
      */
+    @PreAuthorize("hasRole('ANFITRION')")
     @PostMapping
     public Alojamiento crear(@RequestBody CrearAlojDTO dto, HttpServletRequest request) {
-        String rol = (String) request.getAttribute("rol");
-        if (!"ANFITRION".equals(rol)) {
-            throw new RuntimeException("Solo los anfitriones pueden crear alojamientos");
-        }
 
-        UUID anfitrionId = (UUID) request.getAttribute("usuarioId"); // del token
+        UUID anfitrionId = (UUID) request.getAttribute("usuarioId"); // viene del token (JWTFilter)
 
-        var a = Alojamiento.builder()
+        var alojamiento = Alojamiento.builder()
                 .titulo(dto.titulo())
                 .descripcion(dto.descripcion())
                 .direccion(dto.toDireccion())
@@ -49,7 +46,7 @@ public class AlojamientoController {
                 .fotos(dto.fotos() == null ? new ArrayList<>() : dto.fotos())
                 .build();
 
-        return service.crear(anfitrionId, a);
+        return service.crear(anfitrionId, alojamiento);
     }
 
     /** Lista paginada de todos los alojamientos. */
@@ -63,6 +60,7 @@ public class AlojamientoController {
      * Lista los alojamientos del anfitrión autenticado.
      * El anfitrión se toma del token (no de la URL).
      */
+    @PreAuthorize("hasRole('ANFITRION')")
     @GetMapping("/anfitrion")
     public Page<Alojamiento> porAnfitrion(HttpServletRequest request,
                                           @RequestParam(defaultValue = "0") int page,
@@ -81,6 +79,7 @@ public class AlojamientoController {
      * Actualiza parcialmente un alojamiento por ID.
      * (Valida permisos en la capa de servicio si corresponde).
      */
+    @PreAuthorize("hasRole('ANFITRION')")
     @PatchMapping("/{id}")
     public Alojamiento actualizar(@PathVariable UUID id, @RequestBody EditAlojDTO dto) {
         var parcial = new Alojamiento();
@@ -95,6 +94,7 @@ public class AlojamientoController {
     }
 
     /** Elimina un alojamiento por ID. */
+    @PreAuthorize("hasRole('ANFITRION')")
     @DeleteMapping("/{id}")
     public void eliminar(@PathVariable UUID id) {
         service.eliminar(id);

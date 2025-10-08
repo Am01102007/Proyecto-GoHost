@@ -10,22 +10,22 @@ import org.springframework.context.annotation.Configuration;
  * GeocodingProperties — Configuración para el servicio de geocodificación
  * =============================================================================
  *
- * Esta clase mapea automáticamente las propiedades definidas en application.yml
- * bajo la clave `geocoding.*`.
+ * Mapea application.yml con prefijo "geocoding".
+ * Incluye proveedor/baseUrl/apiKey (tuyos) + banderas y parámetros de robustez.
  *
  * Ejemplo en application.yml:
  *
  * geocoding:
+ *   enabled: true
  *   provider: nominatim
  *   base-url: "https://nominatim.openstreetmap.org/search"
  *   api-key: ""
- *
- * Uso:
- *   - Inyecta esta clase donde necesites la configuración:
- *       @Autowired
- *       private GeocodingProperties geoProps;
- *
- *   - Permite cambiar el proveedor sin modificar el código fuente.
+ *   user-agent: "GoHost/1.0 (contacto: tu-email@ejemplo.com)"
+ *   referer: "https://gohost.local"
+ *   language: "es"
+ *   limit: 1
+ *   timeout-ms: 4000
+ *   retries: 1
  */
 @Getter
 @Setter
@@ -33,20 +33,33 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "geocoding")
 public class GeocodingProperties {
 
-    /**
-     * Proveedor del servicio de geocodificación (nominatim, opencage, geoapify...).
-     * Por defecto: nominatim.
-     */
-    private String provider;
+    /** Habilitar/deshabilitar geocodificación (útil en pruebas) */
+    private boolean enabled = true;
 
-    /**
-     * URL base del endpoint del servicio.
-     */
-    private String baseUrl;
+    /** Proveedor (nominatim, opencage, geoapify, etc.) */
+    private String provider = "nominatim";
 
-    /**
-     * Clave de API, si el proveedor la requiere.
-     * Ejemplo: para OpenCage o Geoapify.
-     */
-    private String apiKey;
+    /** URL base del endpoint del servicio */
+    private String baseUrl = "https://nominatim.openstreetmap.org/search";
+
+    /** Clave de API si el proveedor la requiere */
+    private String apiKey = "";
+
+    /** User-Agent requerido por TOS de algunos proveedores (Nominatim) */
+    private String userAgent = "GoHost/1.0 (contacto: admin@example.com)";
+
+    /** Referer opcional (cortesía / TOS) */
+    private String referer = "https://gohost.local";
+
+    /** Idioma preferido en resultados */
+    private String language = "es";
+
+    /** Límite de resultados (1 = tomamos el primero) */
+    private int limit = 1;
+
+    /** Timeout en milisegundos de la request HTTP */
+    private int timeoutMs = 4000;
+
+    /** Reintentos al fallar (>=0). Con 1 habrá 2 intentos en total */
+    private int retries = 1;
 }

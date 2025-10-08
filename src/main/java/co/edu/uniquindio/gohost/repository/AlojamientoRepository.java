@@ -24,7 +24,7 @@ public interface AlojamientoRepository extends JpaRepository<Alojamiento, java.u
 
     /** Por anfitrión **/
     Page<Alojamiento> findByAnfitrionId(java.util.UUID anfitrionId, Pageable pageable);
-    
+
     Page<Alojamiento> findByDireccionCiudadContainingIgnoreCaseAndCapacidadGreaterThanEqual(String ciudad, Integer capacidad, Pageable pageable);
 
     Page<Alojamiento> findByDireccionCiudadContainingIgnoreCase(String ciudad, Pageable pageable);
