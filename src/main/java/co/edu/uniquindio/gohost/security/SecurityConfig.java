@@ -88,6 +88,7 @@ public class SecurityConfig {
                                 "/api-docs/**",
                                 "/health",
                                 "/api/alojamientos/search",
+                                "/api/alojamientos",
                                 "/actuator/health",
                                 "/error",
                                 "/h2-console/**"

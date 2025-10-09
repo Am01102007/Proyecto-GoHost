@@ -1,11 +1,9 @@
 package co.edu.uniquindio.gohost.service.impl;
 
-import co.edu.uniquindio.gohost.model.Alojamiento;
-import co.edu.uniquindio.gohost.model.Rol;
-import co.edu.uniquindio.gohost.model.Direccion;
+import co.edu.uniquindio.gohost.dto.alojamientosDtos.AlojamientoResDTO;
+import co.edu.uniquindio.gohost.model.*;
 import co.edu.uniquindio.gohost.service.geocoding.GeocodingService;
 import lombok.extern.slf4j.Slf4j;
-import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.repository.AlojamientoRepository;
 import co.edu.uniquindio.gohost.repository.UsuarioRepository;
 import co.edu.uniquindio.gohost.service.AlojamientoService;
@@ -18,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -69,41 +68,47 @@ public class AlojamientoServiceImpl implements AlojamientoService {
 
     /**
      * Lista paginada de alojamientos.
+     * Devuelve DTO para evitar LazyInitializationException.
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<Alojamiento> listar(Pageable pageable) {
-        return alojamientoRepository.findAll(pageable);
+    public Page<AlojamientoResDTO> listar(Pageable pageable) {
+        return alojamientoRepository.findAllWithFotos(pageable).map(this::toRes);
     }
+
 
     /**
      * Lista alojamientos de un anfitrión (verifica existencia).
+     * Devuelve DTO para evitar LazyInitializationException.
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<Alojamiento> listarPorAnfitrion(UUID anfitrionId, Pageable pageable) {
+    public Page<AlojamientoResDTO> listarPorAnfitrion(UUID anfitrionId, Pageable pageable) {
         if (!usuarioRepository.existsById(anfitrionId)) {
             throw new EntityNotFoundException("Anfitrión no encontrado: " + anfitrionId);
         }
-        return alojamientoRepository.findByAnfitrionId(anfitrionId, pageable);
+        return alojamientoRepository.findByAnfitrionIdWithFotos(anfitrionId, pageable).map(this::toRes);
     }
 
     /**
      * Obtiene un alojamiento por id.
+     * Devuelve DTO para evitar LazyInitializationException.
      */
     @Override
     @Transactional(readOnly = true)
-    public Alojamiento obtener(UUID id) {
-        return alojamientoRepository.findById(id)
+    public AlojamientoResDTO obtener(UUID id) {
+        Alojamiento a = alojamientoRepository.findByIdWithFotos(id)
                 .orElseThrow(() -> new EntityNotFoundException("Alojamiento no encontrado: " + id));
+        return toRes(a);
     }
 
     /**
      * Actualiza parcialmente un alojamiento.
+     * Devuelve DTO para evitar LazyInitializationException.
      */
     @Override
-    public Alojamiento actualizar(UUID id, Alojamiento parcial) {
-        Alojamiento existente = obtener(id);
+    public AlojamientoResDTO actualizar(UUID id, Alojamiento parcial) {
+        Alojamiento existente = obtenerEntidad(id); // método auxiliar privado
 
         if (StringUtils.hasText(parcial.getTitulo())) {
             existente.setTitulo(parcial.getTitulo());
@@ -112,9 +117,8 @@ public class AlojamientoServiceImpl implements AlojamientoService {
             existente.setDescripcion(parcial.getDescripcion());
         }
 
-
         if (parcial.getDireccion() != null) {
-            geocodificarDireccion(parcial.getDireccion());  // Geocodificar antes de guardar
+            geocodificarDireccion(parcial.getDireccion());
             existente.setDireccion(parcial.getDireccion());
         }
 
@@ -131,8 +135,11 @@ public class AlojamientoServiceImpl implements AlojamientoService {
             existente.setActivo(parcial.getActivo());
         }
 
-        return alojamientoRepository.save(existente);
+        Alojamiento guardado = alojamientoRepository.save(existente);
+        // recargamos con fotos antes de mapear
+        return toRes(alojamientoRepository.findByIdWithFotos(guardado.getId()).orElseThrow());
     }
+
     /**
      * Elimina un alojamiento por id.
      */
@@ -144,23 +151,26 @@ public class AlojamientoServiceImpl implements AlojamientoService {
         alojamientoRepository.deleteById(id);
     }
 
+
     /**
-     * Búsqueda flexible delegada al repositorio:
-     * - ciudad: contiene (case-insensitive)
-     * - capacidad: mínimo
-     * Si ambos son nulos/vacíos, pagina todos.
+     * Búsqueda flexible con filtros.
+     * Devuelve DTO para evitar LazyInitializationException.
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<Alojamiento> buscar(String ciudad, Integer capacidad, Pageable pageable) {
+    public Page<AlojamientoResDTO> buscar(String ciudad, Integer capacidad, Pageable pageable) {
         boolean sinCiudad = !StringUtils.hasText(ciudad);
         boolean sinCapacidad = (capacidad == null);
 
+        Page<Alojamiento> page;
         if (sinCiudad && sinCapacidad) {
-            return alojamientoRepository.findAll(pageable);
+            page = alojamientoRepository.findAllWithFotos(pageable);
+        } else {
+            page = alojamientoRepository.searchWithFotos(sinCiudad ? null : ciudad, capacidad, pageable);
         }
-        return alojamientoRepository.search(sinCiudad ? null : ciudad, capacidad, pageable);
+        return page.map(this::toRes);
     }
+
     /**
      * Geocodifica la dirección y actualiza las coordenadas automáticamente.
      * No falla la operación si la geocodificación no funciona.
@@ -197,5 +207,25 @@ public class AlojamientoServiceImpl implements AlojamientoService {
                     direccion.getDireccionCompleta(), e);
             // No lanzamos excepción - la geocodificación es opcional
         }
+    }
+    private AlojamientoResDTO toRes(Alojamiento a) {
+        return new AlojamientoResDTO(
+                a.getId(),
+                a.getTitulo(),
+                a.getDescripcion(),
+                a.getPrecioNoche(),
+                a.getCapacidad(),
+                a.getFotos() == null ? List.of() : a.getFotos(),
+                a.getDireccion() == null ? "Sin ciudad" : a.getDireccion().getCiudad(),
+                a.getAnfitrion() == null ? null : a.getAnfitrion().getId()
+        );
+    }
+    /**
+     * Método auxiliar para obtener la entidad sin exponerla.
+     * Usado internamente por actualizar.
+     */
+    private Alojamiento obtenerEntidad(UUID id) {
+        return alojamientoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Alojamiento no encontrado: " + id));
     }
 }

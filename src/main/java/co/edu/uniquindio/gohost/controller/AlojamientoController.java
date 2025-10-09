@@ -1,5 +1,6 @@
 package co.edu.uniquindio.gohost.controller;
 
+import co.edu.uniquindio.gohost.dto.alojamientosDtos.AlojamientoResDTO;
 import co.edu.uniquindio.gohost.dto.alojamientosDtos.CrearAlojDTO;
 import co.edu.uniquindio.gohost.dto.alojamientosDtos.EditAlojDTO;
 import co.edu.uniquindio.gohost.dto.alojamientosDtos.FiltroBusquedaDTO;
@@ -49,39 +50,39 @@ public class AlojamientoController {
         return service.crear(anfitrionId, alojamiento);
     }
 
+        @PreAuthorize("hasRole('ANFITRION')")
+    @DeleteMapping("/{id}")
+    public void eliminar(@PathVariable UUID id) {
+        service.eliminar(id);
+    }
+
     /** Lista paginada de todos los alojamientos. */
     @GetMapping
-    public Page<Alojamiento> listar(@RequestParam(defaultValue = "0") int page,
-                                    @RequestParam(defaultValue = "10") int size) {
+    public Page<AlojamientoResDTO> listar(@RequestParam(defaultValue = "0") int page,
+                                          @RequestParam(defaultValue = "10") int size) {
         return service.listar(PageRequest.of(page, size));
     }
 
-    /**
-     * Lista los alojamientos del anfitrión autenticado.
-     * El anfitrión se toma del token (no de la URL).
-     */
+    /** Lista alojamientos del anfitrión autenticado. */
     @PreAuthorize("hasRole('ANFITRION')")
     @GetMapping("/anfitrion")
-    public Page<Alojamiento> porAnfitrion(HttpServletRequest request,
-                                          @RequestParam(defaultValue = "0") int page,
-                                          @RequestParam(defaultValue = "10") int size) {
-        UUID anfitrionId = (UUID) request.getAttribute("usuarioId"); // del token
+    public Page<AlojamientoResDTO> porAnfitrion(HttpServletRequest request,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "10") int size) {
+        UUID anfitrionId = (UUID) request.getAttribute("usuarioId");
         return service.listarPorAnfitrion(anfitrionId, PageRequest.of(page, size));
     }
 
     /** Obtiene un alojamiento por su ID. */
     @GetMapping("/{id}")
-    public Alojamiento obtener(@PathVariable UUID id) {
+    public AlojamientoResDTO obtener(@PathVariable UUID id) {
         return service.obtener(id);
     }
 
-    /**
-     * Actualiza parcialmente un alojamiento por ID.
-     * (Valida permisos en la capa de servicio si corresponde).
-     */
+    /** Actualiza parcialmente un alojamiento. */
     @PreAuthorize("hasRole('ANFITRION')")
     @PatchMapping("/{id}")
-    public Alojamiento actualizar(@PathVariable UUID id, @RequestBody EditAlojDTO dto) {
+    public AlojamientoResDTO actualizar(@PathVariable UUID id, @RequestBody EditAlojDTO dto) {
         var parcial = new Alojamiento();
         parcial.setTitulo(dto.titulo());
         parcial.setDescripcion(dto.descripcion());
@@ -93,20 +94,12 @@ public class AlojamientoController {
         return service.actualizar(id, parcial);
     }
 
-    /** Elimina un alojamiento por ID. */
-    @PreAuthorize("hasRole('ANFITRION')")
-    @DeleteMapping("/{id}")
-    public void eliminar(@PathVariable UUID id) {
-        service.eliminar(id);
-    }
-
-    /**
-     * Búsqueda con filtros (ciudad, capacidad) y paginación.
-     */
+    /** Búsqueda con filtros (ciudad, capacidad) y paginación. */
     @PostMapping("/search")
-    public Page<Alojamiento> buscar(@RequestBody FiltroBusquedaDTO f) {
+    public Page<AlojamientoResDTO> buscar(@RequestBody FiltroBusquedaDTO f) {
         int page = f.page() == null ? 0 : f.page();
         int size = f.size() == null ? 10 : f.size();
         return service.buscar(f.ciudad(), f.capacidad(), PageRequest.of(page, size));
     }
+
 }
