@@ -1,5 +1,6 @@
 package co.edu.uniquindio.gohost.service.impl;
 
+import co.edu.uniquindio.gohost.dto.reservaDtos.ReservaResDTO;
 import co.edu.uniquindio.gohost.model.EstadoReserva;
 import co.edu.uniquindio.gohost.model.Reserva;
 import co.edu.uniquindio.gohost.repository.AlojamientoRepository;
@@ -31,7 +32,7 @@ public class ReservaServiceImpl implements ReservaService {
     private final UsuarioRepository usuarioRepo;
     private final AlojamientoRepository alojRepo;
 
-    /** Crear una reserva nueva. */
+    /** Crear una reserva nueva (retorna ENTIDAD). */
     @Override
     @Transactional
     public Reserva crear(UUID alojamientoId, UUID huespedId, LocalDate in, LocalDate out) {
@@ -57,54 +58,78 @@ public class ReservaServiceImpl implements ReservaService {
                 .build());
     }
 
-    /** Listar reservas del huésped autenticado. */
-    @Override
-    @Transactional(readOnly = true)
-    public Page<Reserva> listarPorHuesped(UUID huespedId, Pageable pageable) {
-        return repo.findByHuespedId(huespedId, pageable);
-    }
-
-    /** Listar reservas de los alojamientos del anfitrión autenticado. */
-    @Override
-    @Transactional(readOnly = true)
-    public Page<Reserva> listarPorAnfitrion(UUID anfitrionId, Pageable pageable) {
-        return repo.findByAlojamientoAnfitrionId(anfitrionId, pageable);
-    }
-
-    /** Actualizar fechas y/o estado de una reserva. */
+    /** Crear una reserva y retornar DTO (con alojamiento/fotos inicializados). */
     @Override
     @Transactional
-    public Reserva actualizar(UUID id, LocalDate in, LocalDate out, EstadoReserva estado) {
-        var r = obtener(id);
+    public ReservaResDTO crearConDTO(UUID alojamientoId, UUID huespedId, LocalDate in, LocalDate out) {
+        // 1) crear entidad con la lógica existente
+        Reserva creada = crear(alojamientoId, huespedId, in, out);
 
-        if (Boolean.TRUE.equals(r.isEliminada()) || r.getEstado() == EstadoReserva.CANCELADA) {
+        // 2) recargar con JOIN FETCH para inicializar alojamiento.fotos (evita LazyInitializationException)
+        Reserva completa = repo.findByIdWithFotos(creada.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Reserva recién creada no encontrada"));
+
+        // 3) mapear a DTO
+        return toRes(completa);
+    }
+
+    /** Listar reservas del huésped autenticado como DTO. */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReservaResDTO> listarPorHuespedConDTO(UUID huespedId, Pageable pageable) {
+        return repo.findByHuespedIdWithFotos(huespedId, pageable).map(this::toRes);
+    }
+
+    /** Listar reservas de los alojamientos del anfitrión autenticado como DTO. */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReservaResDTO> listarPorAnfitrionConDTO(UUID anfitrionId, Pageable pageable) {
+        return repo.findByAlojamientoAnfitrionIdWithFotos(anfitrionId, pageable).map(this::toRes);
+    }
+
+    /** Obtener una reserva por ID como DTO. */
+    @Override
+    @Transactional(readOnly = true)
+    public ReservaResDTO obtenerConDTO(UUID id) {
+        Reserva r = repo.findByIdWithFotos(id)
+                .orElseThrow(() -> new EntityNotFoundException("Reserva no existe"));
+        return toRes(r);
+    }
+
+    /** Actualizar una reserva y devolver DTO. */
+    @Override
+    @Transactional
+    public ReservaResDTO actualizarConDTO(UUID id, LocalDate in, LocalDate out, EstadoReserva estado) {
+        Reserva actualizada = repo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Reserva no existe"));
+        if (actualizada.isEliminada() || actualizada.getEstado() == EstadoReserva.CANCELADA) {
             throw new IllegalStateException("La reserva cancelada/eliminada no puede modificarse");
         }
 
-        // Actualizar rango de fechas si viene completo
         if (in != null && out != null) {
             validarRango(in, out);
-            if (repo.existsTraslape(r.getAlojamiento().getId(), in, out)) {
+            if (repo.existsTraslape(actualizada.getAlojamiento().getId(), in, out)) {
                 throw new IllegalStateException("Fechas no disponibles");
             }
-            r.setCheckIn(in);
-            r.setCheckOut(out);
+            actualizada.setCheckIn(in);
+            actualizada.setCheckOut(out);
         }
 
-        // Actualizar estado (opcional)
         if (estado != null) {
-            r.setEstado(estado);
+            actualizada.setEstado(estado);
         }
 
-        return repo.save(r);
+        repo.save(actualizada);
+        return toRes(repo.findByIdWithFotos(actualizada.getId()).orElseThrow());
     }
 
     /** Cancelar (soft delete + estado CANCELADA). Idempotente. */
     @Override
     @Transactional
     public void cancelar(UUID id) {
-        var r = obtener(id);
-        if (r.getEstado() == EstadoReserva.CANCELADA && Boolean.TRUE.equals(r.isEliminada())) {
+        var r = repo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Reserva no existe"));
+        if (r.getEstado() == EstadoReserva.CANCELADA && r.isEliminada()) {
             return; // idempotente
         }
         r.setEstado(EstadoReserva.CANCELADA);
@@ -112,9 +137,9 @@ public class ReservaServiceImpl implements ReservaService {
         repo.save(r);
     }
 
-    /** Obtener una reserva por ID. */
-    @Override
+    /** Obtener una reserva por ID (entidad). */
     @Transactional(readOnly = true)
+    @Override
     public Reserva obtener(UUID id) {
         return repo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Reserva no existe"));
@@ -125,5 +150,26 @@ public class ReservaServiceImpl implements ReservaService {
         if (in == null || out == null || !out.isAfter(in)) {
             throw new IllegalArgumentException("Rango de fechas inválido");
         }
+    }
+
+    /* =========================================================
+       MAPEO MANUAL: Reserva → ReservaResDTO
+       ========================================================= */
+
+    private ReservaResDTO toRes(Reserva r) {
+        return new ReservaResDTO(
+                r.getId(),
+                r.getCheckIn(),
+                r.getCheckOut(),
+                r.getEstado() != null ? EstadoReserva.valueOf(r.getEstado().name()) : null,
+                r.isEliminada(),
+                r.getHuesped() != null ? r.getHuesped().getId() : null,
+                r.getHuesped() != null ? r.getHuesped().getNombre() : null, // asume getNombre()
+                r.getAlojamiento() != null ? r.getAlojamiento().getId() : null,
+                r.getAlojamiento() != null ? r.getAlojamiento().getTitulo() : null,
+                (r.getAlojamiento() != null && r.getAlojamiento().getDireccion() != null)
+                        ? r.getAlojamiento().getDireccion().getCiudad()
+                        : "Sin ciudad"
+        );
     }
 }

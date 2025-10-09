@@ -1,4 +1,3 @@
-
 package co.edu.uniquindio.gohost.model;
 
 import jakarta.persistence.*;
@@ -8,18 +7,21 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/** Reserva con rango [checkIn, checkOut) **/
+/**
+ * Reserva con rango [checkIn, checkOut)
+ */
 @Entity
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Reserva {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Usuario huesped;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Alojamiento alojamiento;
 
     @NotNull
@@ -32,4 +34,6 @@ public class Reserva {
     private EstadoReserva estado = EstadoReserva.PENDIENTE;
 
     private boolean eliminada = false;
+
+
 }

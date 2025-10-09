@@ -50,7 +50,7 @@ public class AlojamientoController {
         return service.crear(anfitrionId, alojamiento);
     }
 
-        @PreAuthorize("hasRole('ANFITRION')")
+    @PreAuthorize("hasRole('ANFITRION')")
     @DeleteMapping("/{id}")
     public void eliminar(@PathVariable UUID id) {
         service.eliminar(id);
