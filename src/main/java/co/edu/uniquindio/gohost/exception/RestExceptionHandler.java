@@ -66,4 +66,22 @@ public class RestExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()));
     }
+    /** 500 - LazyInitializationException (proxy sin sesión) */
+    @ExceptionHandler(org.hibernate.LazyInitializationException.class)
+    public ResponseEntity<ApiError> lazyInit(org.hibernate.LazyInitializationException ex) {
+        String mensaje = "Error de acceso a datos: se intentó acceder a una relación no cargada. "
+                + "Por favor, contacta al administrador.";
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, mensaje));
+    }
+
+    /** 500 - NullPointerException en lógica de negocio (por ejemplo, toRes) */
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<ApiError> nullPointer(NullPointerException ex) {
+        String mensaje = "Error interno: campo obligatorio nulo. "
+                + "Por favor, verifica los datos o contacta al administrador.";
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, mensaje));
+    }
+
 }
