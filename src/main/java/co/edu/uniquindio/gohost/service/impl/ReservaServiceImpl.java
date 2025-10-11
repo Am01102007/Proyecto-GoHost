@@ -7,6 +7,7 @@ import co.edu.uniquindio.gohost.repository.AlojamientoRepository;
 import co.edu.uniquindio.gohost.repository.ReservaRepository;
 import co.edu.uniquindio.gohost.repository.UsuarioRepository;
 import co.edu.uniquindio.gohost.service.ReservaService;
+import co.edu.uniquindio.gohost.service.mail.MailService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 /**
@@ -31,6 +34,7 @@ public class ReservaServiceImpl implements ReservaService {
     private final ReservaRepository repo;
     private final UsuarioRepository usuarioRepo;
     private final AlojamientoRepository alojRepo;
+    private final MailService mailService;
 
     /** Crear una reserva nueva (retorna ENTIDAD). */
     @Override
@@ -48,7 +52,7 @@ public class ReservaServiceImpl implements ReservaService {
         var alojamiento = alojRepo.findById(alojamientoId)
                 .orElseThrow(() -> new EntityNotFoundException("Alojamiento no existe"));
 
-        return repo.save(Reserva.builder()
+        var reserva = repo.save(Reserva.builder()
                 .huesped(huesped)
                 .alojamiento(alojamiento)
                 .checkIn(in)
@@ -56,6 +60,47 @@ public class ReservaServiceImpl implements ReservaService {
                 .estado(EstadoReserva.PENDIENTE)
                 .eliminada(false)
                 .build());
+
+        // ========= Envío de correo de confirmación =========
+        final String emailDestino = huesped.getEmail();    // ajusta si tu getter se llama distinto
+        final String nombreHuesped = huesped.getNombre();  // idem
+        final String tituloAloj = alojamiento.getTitulo(); // idem
+        final long noches = ChronoUnit.DAYS.between(in, out);
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd"); // ajusta formato si quieres
+        String checkInStr = in.format(fmt);
+        String checkOutStr = out.format(fmt);
+
+        // 🔹 Plantilla HTML del correo (estilo igual a tu ejemplo)
+        String html = """
+            <h2>Confirmación de reserva</h2>
+            <p>Hola %s,</p>
+            <p>Tu reserva se ha creado correctamente.</p>
+            <p><b>Código de reserva:</b></p>
+            <h1 style="color:#007BFF;">%s</h1>
+            <p><b>Alojamiento:</b> %s</p>
+            <p><b>Check-in:</b> %s</p>
+            <p><b>Check-out:</b> %s</p>
+            <p><b>Noches:</b> %d</p>
+            <br/>
+            <p>Gracias por reservar con nosotros. Si tienes dudas, responde este correo.</p>
+            """.formatted(
+                nombreHuesped,
+                reserva.getId(),
+                tituloAloj,
+                checkInStr,
+                checkOutStr,
+                noches
+        );
+
+        // 🔹 Enviar el correo
+        try {
+            mailService.sendMail(emailDestino, "Confirmación de reserva", html);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al enviar el correo de confirmación: " + e.getMessage(), e);
+        }
+
+        return reserva;
     }
 
     /** Crear una reserva y retornar DTO (con alojamiento/fotos inicializados). */
