@@ -3,6 +3,7 @@ package co.edu.uniquindio.gohost.controller;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.CambioPasswordDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.ConfirmarResetPasswordDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioPerfilDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioResDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.EditarUsuarioDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.ResetPasswordDTO;
 import co.edu.uniquindio.gohost.model.Usuario;
@@ -34,11 +35,14 @@ public class UsuarioController {
     @Autowired
     private AuthenticationHelper authHelper;
 
-    /** Lista paginada de usuarios (si corresponde a tu caso de uso/rol). */
+    /** 
+     * Lista paginada de usuarios como DTO.
+     * Excluye información sensible y evita problemas de lazy loading.
+     */
     @GetMapping
-    public Page<Usuario> listar(@RequestParam(defaultValue = "0") int page,
-                                @RequestParam(defaultValue = "10") int size) {
-        return service.listar(PageRequest.of(page, size));
+    public Page<UsuarioResDTO> listar(@RequestParam(defaultValue = "0") int page,
+                                     @RequestParam(defaultValue = "10") int size) {
+        return service.listarConDTO(PageRequest.of(page, size));
     }
 
 
@@ -58,21 +62,9 @@ public class UsuarioController {
      * PATCH /api/usuarios/me
      */
     @PatchMapping("/me")
-    public Usuario editar(HttpServletRequest request, @RequestBody EditarUsuarioDTO dto) {
+    public UsuarioPerfilDTO editar(HttpServletRequest request, @RequestBody EditarUsuarioDTO dto) {
         UUID id = authHelper.getAuthenticatedUserId(request);
-
-        var parcial = new Usuario();
-        parcial.setNombre(dto.nombre());
-        parcial.setApellidos(dto.apellidos());
-        parcial.setTelefono(dto.telefono());
-        parcial.setCiudad(dto.ciudad());
-        parcial.setPais(dto.pais());
-        parcial.setFechaNacimiento(dto.fechaNacimiento());
-        parcial.setTipoDocumento(dto.tipoDocumento());
-        parcial.setNumeroDocumento(dto.numeroDocumento());
-        parcial.setFotoPerfil(dto.fotoPerfil());
-
-        return service.actualizar(id, parcial);
+        return service.actualizarPerfil(id, dto);
     }
     /**
      * Cambio de contraseña del usuario autenticado.
@@ -91,27 +83,14 @@ public class UsuarioController {
      */
     @PostMapping("/password/reset")
     public ResponseEntity<String> solicitarResetPassword(@RequestBody ResetPasswordDTO dto) {
-        try {
-            service.resetPassword(dto.email());
-            return ResponseEntity.accepted().body("Se ha enviado un enlace de recuperación a tu correo.");
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(404).body("No existe un usuario con ese correo.");
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error al procesar la solicitud de restablecimiento.");
-        }
+        service.resetPassword(dto.email());
+        return ResponseEntity.accepted().body("Se ha enviado un enlace de recuperación a tu correo.");
     }
+
     @PutMapping("/password/confirm")
     public ResponseEntity<String> confirmarResetPassword(@RequestBody ConfirmarResetPasswordDTO dto) {
-        try {
-            service.confirmarResetPassword(dto.token(), dto.nuevaPassword());
-            return ResponseEntity.ok("Contraseña restablecida correctamente");
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(404).body("Código inválido");
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(410).body("El código ha expirado");
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error al restablecer contraseña");
-        }
+        service.confirmarResetPassword(dto.token(), dto.nuevaPassword());
+        return ResponseEntity.ok("Contraseña restablecida correctamente");
     }
 
 

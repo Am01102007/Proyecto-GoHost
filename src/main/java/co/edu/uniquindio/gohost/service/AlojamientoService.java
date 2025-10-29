@@ -116,6 +116,22 @@ public interface AlojamientoService {
      * @param alojamientoId ID del alojamiento
      * @return Métricas del alojamiento
      */
+    /**
+     * Obtiene métricas de un alojamiento específico.
+     * Verifica que el anfitrión autenticado sea propietario del alojamiento.
+     *
+     * @param alojamientoId ID del alojamiento
+     * @param anfitrionId ID del anfitrión autenticado
+     * @return Métricas del alojamiento
+     * @throws SecurityException si el anfitrión no es propietario
+     */
+    MetricasAlojamientoDTO obtenerMetricasConValidacion(UUID alojamientoId, UUID anfitrionId);
+
+    /**
+     * Obtiene métricas de un alojamiento específico (sin validación de propiedad).
+     * @deprecated Usar obtenerMetricasConValidacion() para mayor seguridad
+     */
+    @Deprecated
     MetricasAlojamientoDTO obtenerMetricas(UUID alojamientoId);
 
     /**

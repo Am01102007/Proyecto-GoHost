@@ -121,17 +121,9 @@ public class AlojamientoController {
      */
     @PreAuthorize("hasRole('ANFITRION')")
     @GetMapping("/{id}/metricas")
-    public ResponseEntity<MetricasAlojamientoDTO> obtenerMetricas(@PathVariable UUID id, HttpServletRequest request) {
+    public MetricasAlojamientoDTO obtenerMetricas(@PathVariable UUID id, HttpServletRequest request) {
         UUID anfitrionId = authHelper.getAuthenticatedUserId(request);
-        
-        // Verificar que el alojamiento pertenece al anfitrión autenticado
-        AlojamientoResDTO alojamiento = service.obtener(id);
-        if (!alojamiento.anfitrionId().equals(anfitrionId)) {
-            return ResponseEntity.status(403).build();
-        }
-        
-        MetricasAlojamientoDTO metricas = service.obtenerMetricas(id);
-        return ResponseEntity.ok(metricas);
+        return service.obtenerMetricasConValidacion(id, anfitrionId);
     }
 
     /**

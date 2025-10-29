@@ -1,6 +1,10 @@
 package co.edu.uniquindio.gohost.service.impl;
 import org.springframework.transaction.annotation.Transactional;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioPerfilDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioResDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.EditarUsuarioDTO;
+import co.edu.uniquindio.gohost.exception.PasswordResetException;
+import co.edu.uniquindio.gohost.exception.MailServiceException;
 import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.repository.UsuarioRepository;
 import co.edu.uniquindio.gohost.service.UsuarioService;
@@ -217,16 +221,27 @@ public class UsuarioServiceImpl implements UsuarioService {
         try {
             mailService.sendMail(email, "Código de recuperación de contraseña", html);
         } catch (Exception e) {
-            throw new RuntimeException("Error al enviar el correo de recuperación: " + e.getMessage(), e);
+            throw new MailServiceException("Error al enviar el correo de recuperación: " + e.getMessage(), e);
         }
     }
 
 
 
     /**
-     * Lista de usuarios con paginación.
+     * Lista de usuarios con paginación como DTO.
+     * Excluye información sensible y evita lazy loading.
      */
     @Override
+    public Page<UsuarioResDTO> listarConDTO(Pageable pageable) {
+        return repo.findAll(pageable).map(this::toResDTO);
+    }
+
+    /**
+     * Lista de usuarios con paginación (método legacy).
+     * @deprecated Usar listarConDTO() para evitar exposición de entidades
+     */
+    @Override
+    @Deprecated
     public Page<Usuario> listar(Pageable pageable) {
         return repo.findAll(pageable);
     }
@@ -274,13 +289,13 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
 
         if (resetToken == null) {
-            throw new EntityNotFoundException("Código inválido o expirado");
+            throw new PasswordResetException("Código inválido o expirado");
         }
 
         // Verificar nuevamente que no haya expirado (por seguridad)
         if (resetToken.expirado()) {
             passwordResetTokenRepository.delete(resetToken);
-            throw new IllegalStateException("El código ha expirado");
+            throw new PasswordResetException("El código ha expirado");
         }
 
         Usuario usuario = resetToken.getUsuario();
@@ -314,6 +329,42 @@ public class UsuarioServiceImpl implements UsuarioService {
         );
     }
 
+    /**
+     * Actualiza el perfil del usuario usando DTO.
+     * Traslada la lógica de mapeo del controlador al servicio.
+     */
+    @Override
+    public UsuarioPerfilDTO actualizarPerfil(UUID id, EditarUsuarioDTO dto) {
+        var parcial = new Usuario();
+        parcial.setNombre(dto.nombre());
+        parcial.setApellidos(dto.apellidos());
+        parcial.setTelefono(dto.telefono());
+        parcial.setCiudad(dto.ciudad());
+        parcial.setPais(dto.pais());
+        parcial.setFechaNacimiento(dto.fechaNacimiento());
+        parcial.setTipoDocumento(dto.tipoDocumento());
+        parcial.setNumeroDocumento(dto.numeroDocumento());
+        parcial.setFotoPerfil(dto.fotoPerfil());
 
+        Usuario actualizado = actualizar(id, parcial);
+        return obtenerPerfil(actualizado.getId());
+    }
+
+    /**
+     * Convierte Usuario a UsuarioResDTO excluyendo información sensible.
+     */
+    private UsuarioResDTO toResDTO(Usuario u) {
+        return new UsuarioResDTO(
+                u.getId(),
+                u.getNombre(),
+                u.getEmail(),
+                u.getTelefono(),
+                u.getCiudad(),
+                u.getPais(),
+                u.getRol(),
+                u.isActivo(),
+                u.getCreadoEn()
+        );
+    }
 
 }

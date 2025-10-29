@@ -1,6 +1,7 @@
 package co.edu.uniquindio.gohost.service.impl;
 
 import co.edu.uniquindio.gohost.dto.alojamientosDtos.*;
+import co.edu.uniquindio.gohost.exception.SecurityException;
 import jakarta.persistence.EntityNotFoundException;
 import co.edu.uniquindio.gohost.model.Alojamiento;
 import co.edu.uniquindio.gohost.model.Direccion;
@@ -426,6 +427,19 @@ public class AlojamientoServiceImpl implements AlojamientoService {
 
     @Override
     @Transactional(readOnly = true)
+    public MetricasAlojamientoDTO obtenerMetricasConValidacion(UUID alojamientoId, UUID anfitrionId) {
+        // Verificar que el alojamiento pertenece al anfitrión autenticado
+        AlojamientoResDTO alojamiento = obtener(alojamientoId);
+        if (!alojamiento.anfitrionId().equals(anfitrionId)) {
+            throw new SecurityException("El anfitrión no tiene permisos para ver las métricas de este alojamiento");
+        }
+        
+        return obtenerMetricas(alojamientoId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Deprecated
     public MetricasAlojamientoDTO obtenerMetricas(UUID alojamientoId) {
         Optional<Object[]> resultado = alojamientoRepository.obtenerMetricasNative(alojamientoId);
         

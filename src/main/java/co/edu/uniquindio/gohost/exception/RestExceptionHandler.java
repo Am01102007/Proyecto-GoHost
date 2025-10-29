@@ -47,6 +47,26 @@ public class RestExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), req);
     }
 
+    /** 403 - Acceso denegado por seguridad (recursos no propios) */
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ApiError> securityViolation(SecurityException ex, HttpServletRequest req) {
+        log.warn("Violación de seguridad en {}: {}", req.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), req);
+    }
+
+    /** 400 - Error en proceso de restablecimiento de contraseña */
+    @ExceptionHandler(PasswordResetException.class)
+    public ResponseEntity<ApiError> passwordResetError(PasswordResetException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req);
+    }
+
+    /** 500 - Error del servicio de correo */
+    @ExceptionHandler(MailServiceException.class)
+    public ResponseEntity<ApiError> mailServiceError(MailServiceException ex, HttpServletRequest req) {
+        log.error("Error del servicio de correo en {}: {}", req.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Error al enviar correo electrónico", req);
+    }
+
     /** 400 - Error de validación (Bean Validation en body) */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> beanValidation(MethodArgumentNotValidException ex, HttpServletRequest req) {

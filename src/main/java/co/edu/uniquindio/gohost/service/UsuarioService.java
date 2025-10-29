@@ -1,6 +1,8 @@
 package co.edu.uniquindio.gohost.service;
 
 import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioPerfilDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioResDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.EditarUsuarioDTO;
 import co.edu.uniquindio.gohost.model.Usuario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -133,6 +135,20 @@ public interface UsuarioService {
      * @param pageable configuración de paginación.
      * @return página con los usuarios.
      */
+    /**
+     * Lista usuarios paginados como DTO.
+     * Excluye información sensible y evita problemas de lazy loading.
+     *
+     * @param pageable configuración de paginación
+     * @return página de usuarios como DTO
+     */
+    Page<UsuarioResDTO> listarConDTO(Pageable pageable);
+
+    /**
+     * Lista usuarios paginados (método legacy).
+     * @deprecated Usar listarConDTO() para evitar exposición de entidades
+     */
+    @Deprecated
     Page<Usuario> listar(Pageable pageable);
 
     /**
@@ -169,6 +185,16 @@ public interface UsuarioService {
      * @param id identificador del usuario autenticado.
      * @return DTO con los datos del perfil del usuario.
      */
+    /**
+     * Actualiza el perfil del usuario usando DTO.
+     * Traslada la lógica de mapeo del controlador al servicio.
+     *
+     * @param id identificador del usuario
+     * @param dto datos a actualizar
+     * @return DTO del perfil actualizado
+     */
+    UsuarioPerfilDTO actualizarPerfil(UUID id, EditarUsuarioDTO dto);
+
     UsuarioPerfilDTO obtenerPerfil(UUID id);
 
 }
