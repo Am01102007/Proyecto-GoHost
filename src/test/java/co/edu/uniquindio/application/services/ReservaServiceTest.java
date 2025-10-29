@@ -45,6 +45,9 @@ class ReservaServiceUnitTest {
     @Mock
     private AlojamientoRepository alojamientoRepository;
 
+    @Mock
+    private MailService mailService;
+
     @InjectMocks
     private ReservaServiceImpl reservaService;
 
@@ -224,16 +227,19 @@ class ReservaServiceUnitTest {
         List<Reserva> reservas = List.of(reservaMock);
         Page<Reserva> pagina = new PageImpl<>(reservas);
         var pageable = PageRequest.of(0, 10);
+        LocalDate fechaInicio = LocalDate.now();
+        LocalDate fechaFin = LocalDate.now().plusDays(7);
+        EstadoReserva estado = EstadoReserva.CONFIRMADA;
 
-        when(reservaRepository.findByHuespedIdWithFotos(huespedId, pageable)).thenReturn(pagina);
+        when(reservaRepository.findByHuespedIdWithFotos(huespedId, fechaInicio, fechaFin, estado, pageable)).thenReturn(pagina);
 
         // Act
-        var resultado = reservaService.listarPorHuespedConDTO(huespedId, pageable);
+        var resultado = reservaService.listarPorHuespedConDTO(huespedId, fechaInicio, fechaFin, estado, pageable);
 
         // Assert
         assertNotNull(resultado);
         assertEquals(1, resultado.getTotalElements());
-        verify(reservaRepository).findByHuespedIdWithFotos(huespedId, pageable);
+        verify(reservaRepository).findByHuespedIdWithFotos(huespedId, fechaInicio, fechaFin, estado, pageable);
     }
 
     @Test
@@ -375,5 +381,70 @@ class ReservaServiceUnitTest {
         assertThrows(EntityNotFoundException.class,
                 () -> reservaService.cancelar(idNoExiste)
         );
+    }
+
+    @Test
+    @DisplayName("Cancelar reserva con menos de 48 horas lanza excepción")
+    void testCancelarReservaConMenosDe48HorasLanzaExcepcion() {
+        // Arrange - Reserva para mañana (menos de 48 horas)
+        LocalDate checkInMañana = LocalDate.now().plusDays(1);
+        reservaMock.setCheckIn(checkInMañana);
+        reservaMock.setEstado(EstadoReserva.CONFIRMADA);
+        reservaMock.setEliminada(false);
+        when(reservaRepository.findById(reservaId)).thenReturn(Optional.of(reservaMock));
+
+        // Act & Assert
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> reservaService.cancelar(reservaId)
+        );
+        assertTrue(exception.getMessage().contains("menos de 48 horas"));
+    }
+
+    @Test
+    @DisplayName("Crear reserva en fecha pasada lanza excepción")
+    void testCrearReservaEnFechaPasadaLanzaExcepcion() {
+        // Arrange - Fechas en el pasado
+        LocalDate checkInPasado = LocalDate.now().minusDays(1);
+        LocalDate checkOutPasado = LocalDate.now().plusDays(1);
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> reservaService.crear(alojamientoId, huespedId, checkInPasado, checkOutPasado)
+        );
+        assertTrue(exception.getMessage().contains("fechas pasadas"));
+    }
+
+    @Test
+    @DisplayName("Crear reserva con checkIn hoy es válido")
+    void testCrearReservaConCheckInHoyEsValido() {
+        // Arrange - CheckIn hoy, checkOut mañana
+        LocalDate checkInHoy = LocalDate.now();
+        LocalDate checkOutMañana = LocalDate.now().plusDays(1);
+        
+        // Crear una reserva mock que será devuelta por save()
+        Reserva reservaEsperada = Reserva.builder()
+                .id(UUID.randomUUID())
+                .huesped(huespedMock)
+                .alojamiento(alojamientoMock)
+                .checkIn(checkInHoy)
+                .checkOut(checkOutMañana)
+                .numeroHuespedes(1)
+                .estado(EstadoReserva.PENDIENTE)
+                .eliminada(false)
+                .build();
+        
+        when(usuarioRepository.findById(huespedId)).thenReturn(Optional.of(huespedMock));
+        when(alojamientoRepository.findById(alojamientoId)).thenReturn(Optional.of(alojamientoMock));
+        when(reservaRepository.existsTraslape(alojamientoId, checkInHoy, checkOutMañana)).thenReturn(false);
+        when(reservaRepository.save(any(Reserva.class))).thenReturn(reservaEsperada);
+
+        // Act
+        Reserva resultado = reservaService.crear(alojamientoId, huespedId, checkInHoy, checkOutMañana);
+
+        // Assert
+        assertNotNull(resultado);
+        assertEquals(reservaEsperada.getId(), resultado.getId());
+        assertEquals(EstadoReserva.PENDIENTE, resultado.getEstado());
+        verify(reservaRepository).save(any(Reserva.class));
     }
 }

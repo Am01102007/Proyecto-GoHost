@@ -252,12 +252,16 @@ class UsuarioServiceTest {
         }
 
         @Test
-        void emailDuplicado() {
-            Usuario cambios = Usuario.builder().email(EMAIL_DUP).build();
-            when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuarioMock));
-            when(usuarioRepository.existsByEmail(EMAIL_DUP)).thenReturn(true);
+        void usuarioInactivo() {
+            Usuario cambios = Usuario.builder().nombre("Nuevo Nombre").build();
+            Usuario usuarioInactivo = Usuario.builder()
+                    .id(usuarioId)
+                    .activo(false)
+                    .build();
+            
+            when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuarioInactivo));
 
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(IllegalStateException.class,
                     () -> usuarioService.actualizar(usuarioId, cambios));
             verify(usuarioRepository, never()).save(any());
         }

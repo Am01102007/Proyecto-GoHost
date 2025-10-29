@@ -1,6 +1,7 @@
 package co.edu.uniquindio.gohost.dto.alojamientosDtos;
 
 import co.edu.uniquindio.gohost.model.Direccion;
+import co.edu.uniquindio.gohost.model.ServicioAlojamiento;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -52,7 +53,12 @@ public record CrearAlojDTO(
         Integer capacidad,
 
         /** URLs de imágenes (Cloudinary u otro proveedor) */
-        List<String> fotos
+        @NotNull(message = "Las fotos son obligatorias")
+        @Size(min = 1, max = 10, message = "Debe incluir entre 1 y 10 fotos")
+        List<String> fotos,
+
+        /** Servicios/amenidades disponibles en el alojamiento */
+        List<ServicioAlojamiento> servicios
 ) {
     /**
      * Convierte los datos planos del DTO a una instancia de {@link Direccion}.

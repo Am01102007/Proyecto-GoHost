@@ -12,5 +12,5 @@ public record EditarUsuarioDTO(
         LocalDate fechaNacimiento,
         TipoDocumento tipoDocumento,
         String numeroDocumento,
-        String email
+        String fotoPerfil
 ) {}

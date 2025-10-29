@@ -5,6 +5,7 @@ import co.edu.uniquindio.gohost.model.Direccion;
 import co.edu.uniquindio.gohost.model.Rol;
 import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.repository.AlojamientoRepository;
+import co.edu.uniquindio.gohost.repository.ReservaRepository;
 import co.edu.uniquindio.gohost.repository.UsuarioRepository;
 import co.edu.uniquindio.gohost.service.impl.AlojamientoServiceImpl;
 import jakarta.persistence.EntityNotFoundException;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +42,8 @@ class AlojamientoServiceUnitTest {
     private AlojamientoRepository alojamientoRepository;
     @Mock
     private UsuarioRepository usuarioRepository;
+    @Mock
+    private ReservaRepository reservaRepository;
     @InjectMocks
     private AlojamientoServiceImpl alojamientoService;
 
@@ -309,15 +313,22 @@ class AlojamientoServiceUnitTest {
     @DisplayName("Eliminar alojamiento exitosamente")
     void testEliminarAlojamientoExitoso() {
         // Arrange
-        when(alojamientoRepository.existsById(alojamientoId)).thenReturn(true);
-        doNothing().when(alojamientoRepository).deleteById(alojamientoId);
+        Alojamiento alojamiento = new Alojamiento();
+        alojamiento.setId(alojamientoId);
+        alojamiento.setActivo(true);
+        
+        when(alojamientoRepository.findById(alojamientoId)).thenReturn(Optional.of(alojamiento));
+        when(reservaRepository.existsReservasFuturas(alojamientoId, LocalDate.now())).thenReturn(false);
+        when(alojamientoRepository.save(any(Alojamiento.class))).thenReturn(alojamiento);
 
         // Act
         alojamientoService.eliminar(alojamientoId);
 
         // Assert
-        verify(alojamientoRepository).existsById(alojamientoId);
-        verify(alojamientoRepository).deleteById(alojamientoId);
+        verify(alojamientoRepository).findById(alojamientoId);
+        verify(reservaRepository).existsReservasFuturas(alojamientoId, LocalDate.now());
+        verify(alojamientoRepository).save(alojamiento);
+        assertFalse(alojamiento.getActivo());
     }
 
     @Test
@@ -325,7 +336,7 @@ class AlojamientoServiceUnitTest {
     void testEliminarAlojamientoNoExistenteLanzaExcepcion() {
         // Arrange
         UUID idNoExiste = UUID.randomUUID();
-        when(alojamientoRepository.existsById(idNoExiste)).thenReturn(false);
+        when(alojamientoRepository.findById(idNoExiste)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(EntityNotFoundException.class,

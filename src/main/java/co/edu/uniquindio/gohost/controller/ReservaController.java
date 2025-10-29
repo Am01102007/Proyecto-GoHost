@@ -3,16 +3,20 @@ package co.edu.uniquindio.gohost.controller;
 import co.edu.uniquindio.gohost.dto.reservaDtos.ActualizarReservaDTO;
 import co.edu.uniquindio.gohost.dto.reservaDtos.CrearReservaDTO;
 import co.edu.uniquindio.gohost.dto.reservaDtos.ReservaResDTO;
+import co.edu.uniquindio.gohost.model.EstadoReserva;
+import co.edu.uniquindio.gohost.security.AuthenticationHelper;
 import co.edu.uniquindio.gohost.service.ReservaService;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Objects;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -22,10 +26,13 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/reservas")
-@RequiredArgsConstructor
 public class ReservaController {
 
-    private final ReservaService service;
+    @Autowired
+    private ReservaService service;
+
+    @Autowired
+    private AuthenticationHelper authHelper;
 
     /**
      * Crear una reserva para el huésped autenticado.
@@ -33,23 +40,29 @@ public class ReservaController {
      */
     @PostMapping
     @PreAuthorize("hasRole('HUESPED')")
-    public ResponseEntity<ReservaResDTO> crear(@RequestBody CrearReservaDTO dto, HttpServletRequest request) {
-        UUID huespedId = getUsuarioIdOrThrow(request);
-        ReservaResDTO body = service.crearConDTO(dto.alojamientoId(), huespedId, dto.checkIn(), dto.checkOut());
-        return ResponseEntity.ok(body);
+    public ResponseEntity<ReservaResDTO> crear(HttpServletRequest request, @RequestBody CrearReservaDTO dto) {
+        UUID huespedId = authHelper.getAuthenticatedUserId(request);
+        ReservaResDTO reserva = service.crearConDTO(huespedId, dto);
+        return ResponseEntity.ok(reserva);
     }
 
     /**
-     * Listar reservas del huésped autenticado como DTO.
+     * Listar reservas del huésped autenticado como DTO con filtros y ordenamiento.
      */
     @GetMapping("/mias")
     @PreAuthorize("hasRole('HUESPED')")
-    public ResponseEntity<Page<ReservaResDTO>> mias(HttpServletRequest request,
-                                                    @RequestParam(defaultValue = "0") int page,
-                                                    @RequestParam(defaultValue = "10") int size) {
-        UUID huespedId = getUsuarioIdOrThrow(request);
-        Page<ReservaResDTO> body = service.listarPorHuespedConDTO(huespedId, PageRequest.of(page, size));
-        return ResponseEntity.ok(body);
+    public ResponseEntity<Page<ReservaResDTO>> deMisReservas(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(required = false) EstadoReserva estado) {
+        
+        UUID huespedId = authHelper.getAuthenticatedUserId(request);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ReservaResDTO> reservas = service.listarPorHuespedConDTO(huespedId, fechaInicio, fechaFin, estado, pageable);
+        return ResponseEntity.ok(reservas);
     }
 
     /**
@@ -60,9 +73,26 @@ public class ReservaController {
     public ResponseEntity<Page<ReservaResDTO>> deMisAlojamientos(HttpServletRequest request,
                                                                  @RequestParam(defaultValue = "0") int page,
                                                                  @RequestParam(defaultValue = "10") int size) {
-        UUID anfitrionId = getUsuarioIdOrThrow(request);
+        UUID anfitrionId = authHelper.getAuthenticatedUserId(request);
         Page<ReservaResDTO> body = service.listarPorAnfitrionConDTO(anfitrionId, PageRequest.of(page, size));
         return ResponseEntity.ok(body);
+    }
+
+    /**
+     * Listar reservas de un alojamiento específico del anfitrión autenticado.
+     */
+    @GetMapping("/alojamiento/{alojamientoId}")
+    @PreAuthorize("hasRole('ANFITRION')")
+    public ResponseEntity<Page<ReservaResDTO>> listarPorAlojamiento(
+            HttpServletRequest request,
+            @PathVariable UUID alojamientoId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        UUID anfitrionId = authHelper.getAuthenticatedUserId(request);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ReservaResDTO> reservas = service.listarPorAlojamientoConDTO(alojamientoId, anfitrionId, pageable);
+        return ResponseEntity.ok(reservas);
     }
 
     /**
@@ -85,6 +115,21 @@ public class ReservaController {
     }
 
     /**
+     * Actualizar una reserva (anfitrión).
+     */
+    @PutMapping("/{reservaId}")
+    @PreAuthorize("hasRole('ANFITRION')")
+    public ResponseEntity<Void> actualizar(
+            HttpServletRequest request,
+            @PathVariable UUID reservaId,
+            @RequestBody ActualizarReservaDTO dto) {
+        
+        // Convertir DTO a parámetros individuales para el método existente
+        ReservaResDTO resultado = service.actualizarConDTO(reservaId, dto.checkIn(), dto.checkOut(), dto.estado());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Cancelar una reserva por ID (idempotente).
      */
     @PostMapping("/{id}/cancelar")
@@ -95,16 +140,5 @@ public class ReservaController {
     }
 
     // ---------- Utilidades ----------
-
-    private UUID getUsuarioIdOrThrow(HttpServletRequest request) {
-        Object attr = request.getAttribute("usuarioId");
-        if (attr instanceof UUID uuid) {
-            return uuid;
-        }
-        if (attr instanceof String s) {
-            try { return UUID.fromString(s); } catch (IllegalArgumentException ignored) {}
-        }
-        // Si el filtro no puso el atributo, señalamos 401 de forma clara.
-        throw new IllegalStateException("No se encontró usuario autenticado (usuarioId).");
-    }
+    // (Método getUsuarioIdOrThrow removido - ahora se usa AuthenticationHelper)
 }

@@ -40,3 +40,23 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Application Configuration ###
+# Exclude sensitive configuration files
+src/main/resources/application.properties
+src/main/resources/application-*.properties
+application.properties
+application-*.properties
+
+### Logs ###
+logs/
+*.log
+
+### Temporary files ###
+*.tmp
+*.temp
+
+### Environment files ###
+.env
+.env.local
+.env.production

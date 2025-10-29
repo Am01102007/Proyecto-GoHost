@@ -1,5 +1,6 @@
 package co.edu.uniquindio.gohost.service;
 
+import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioPerfilDTO;
 import co.edu.uniquindio.gohost.model.Usuario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -161,5 +162,13 @@ public interface UsuarioService {
      */
     boolean existePorNumeroDocumento(String numeroDocumento);
     void confirmarResetPassword(String token, String nuevaPassword);
+
+    /**
+     * Obtiene el perfil del usuario autenticado como DTO.
+     *
+     * @param id identificador del usuario autenticado.
+     * @return DTO con los datos del perfil del usuario.
+     */
+    UsuarioPerfilDTO obtenerPerfil(UUID id);
 
 }

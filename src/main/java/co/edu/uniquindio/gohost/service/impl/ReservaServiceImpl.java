@@ -1,12 +1,16 @@
 package co.edu.uniquindio.gohost.service.impl;
 
+import co.edu.uniquindio.gohost.dto.reservaDtos.CrearReservaDTO;
 import co.edu.uniquindio.gohost.dto.reservaDtos.ReservaResDTO;
+import co.edu.uniquindio.gohost.model.Alojamiento;
 import co.edu.uniquindio.gohost.model.EstadoReserva;
 import co.edu.uniquindio.gohost.model.Reserva;
+import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.repository.AlojamientoRepository;
 import co.edu.uniquindio.gohost.repository.ReservaRepository;
 import co.edu.uniquindio.gohost.repository.UsuarioRepository;
 import co.edu.uniquindio.gohost.service.ReservaService;
+import co.edu.uniquindio.gohost.service.RecordatorioService;
 import co.edu.uniquindio.gohost.service.mail.MailService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +39,7 @@ public class ReservaServiceImpl implements ReservaService {
     private final UsuarioRepository usuarioRepo;
     private final AlojamientoRepository alojRepo;
     private final MailService mailService;
+    private final RecordatorioService recordatorioService;
 
     /** Crear una reserva nueva (retorna ENTIDAD). */
     @Override
@@ -57,47 +62,20 @@ public class ReservaServiceImpl implements ReservaService {
                 .alojamiento(alojamiento)
                 .checkIn(in)
                 .checkOut(out)
+                .numeroHuespedes(1) // Valor por defecto para compatibilidad
                 .estado(EstadoReserva.PENDIENTE)
                 .eliminada(false)
                 .build());
 
-        // ========= Envío de correo de confirmación =========
-        final String emailDestino = huesped.getEmail();    // ajusta si tu getter se llama distinto
-        final String nombreHuesped = huesped.getNombre();  // idem
-        final String tituloAloj = alojamiento.getTitulo(); // idem
-        final long noches = ChronoUnit.DAYS.between(in, out);
+        // ========= Envío de correo de confirmación al huésped =========
+        enviarCorreoConfirmacionHuesped(huesped, alojamiento, reserva, in, out);
 
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd"); // ajusta formato si quieres
-        String checkInStr = in.format(fmt);
-        String checkOutStr = out.format(fmt);
-
-        // 🔹 Plantilla HTML del correo (estilo igual a tu ejemplo)
-        String html = """
-            <h2>Confirmación de reserva</h2>
-            <p>Hola %s,</p>
-            <p>Tu reserva se ha creado correctamente.</p>
-            <p><b>Código de reserva:</b></p>
-            <h1 style="color:#007BFF;">%s</h1>
-            <p><b>Alojamiento:</b> %s</p>
-            <p><b>Check-in:</b> %s</p>
-            <p><b>Check-out:</b> %s</p>
-            <p><b>Noches:</b> %d</p>
-            <br/>
-            <p>Gracias por reservar con nosotros. Si tienes dudas, responde este correo.</p>
-            """.formatted(
-                nombreHuesped,
-                reserva.getId(),
-                tituloAloj,
-                checkInStr,
-                checkOutStr,
-                noches
-        );
-
-        // 🔹 Enviar el correo
+        // ========= Programar recordatorios automáticos =========
         try {
-            mailService.sendMail(emailDestino, "Confirmación de reserva", html);
+            recordatorioService.programarRecordatoriosParaReserva(reserva);
         } catch (Exception e) {
-            throw new RuntimeException("Error al enviar el correo de confirmación: " + e.getMessage(), e);
+            // Log del error pero no fallar la creación de la reserva
+            System.err.println("Error al programar recordatorios para reserva " + reserva.getId() + ": " + e.getMessage());
         }
 
         return reserva;
@@ -106,9 +84,18 @@ public class ReservaServiceImpl implements ReservaService {
     /** Crear una reserva y retornar DTO (con alojamiento/fotos inicializados). */
     @Override
     @Transactional
-    public ReservaResDTO crearConDTO(UUID alojamientoId, UUID huespedId, LocalDate in, LocalDate out) {
-        // 1) crear entidad con la lógica existente
-        Reserva creada = crear(alojamientoId, huespedId, in, out);
+    public ReservaResDTO crearConDTO(UUID huespedId, CrearReservaDTO dto) {
+        // Validar que el número de huéspedes no exceda la capacidad del alojamiento
+        var alojamiento = alojRepo.findById(dto.alojamientoId())
+                .orElseThrow(() -> new EntityNotFoundException("Alojamiento no existe"));
+        
+        if (dto.numeroHuespedes() > alojamiento.getCapacidad()) {
+            throw new IllegalArgumentException("El número de huéspedes (" + dto.numeroHuespedes() + 
+                ") excede la capacidad del alojamiento (" + alojamiento.getCapacidad() + ")");
+        }
+        
+        // 1) crear entidad con la lógica existente pero incluyendo número de huéspedes
+        Reserva creada = crearConHuespedes(dto.alojamientoId(), huespedId, dto.checkIn(), dto.checkOut(), dto.numeroHuespedes());
 
         // 2) recargar con JOIN FETCH para inicializar alojamiento.fotos (evita LazyInitializationException)
         Reserva completa = repo.findByIdWithFotos(creada.getId())
@@ -117,12 +104,46 @@ public class ReservaServiceImpl implements ReservaService {
         // 3) mapear a DTO
         return toRes(completa);
     }
+    
+    /** Método auxiliar para crear reserva con número de huéspedes */
+    @Transactional
+    private Reserva crearConHuespedes(UUID alojamientoId, UUID huespedId, LocalDate in, LocalDate out, Integer numeroHuespedes) {
+        validarRango(in, out);
 
-    /** Listar reservas del huésped autenticado como DTO. */
+        if (repo.existsTraslape(alojamientoId, in, out)) {
+            throw new IllegalStateException("Fechas no disponibles");
+        }
+
+        var huesped = usuarioRepo.findById(huespedId)
+                .orElseThrow(() -> new EntityNotFoundException("Huésped no existe"));
+
+        var alojamiento = alojRepo.findById(alojamientoId)
+                .orElseThrow(() -> new EntityNotFoundException("Alojamiento no existe"));
+
+        var reserva = repo.save(Reserva.builder()
+                .huesped(huesped)
+                .alojamiento(alojamiento)
+                .checkIn(in)
+                .checkOut(out)
+                .numeroHuespedes(numeroHuespedes)
+                .estado(EstadoReserva.PENDIENTE)
+                .eliminada(false)
+                .build());
+
+        // ========= Envío de correo de confirmación al huésped =========
+        enviarCorreoConfirmacionHuesped(huesped, alojamiento, reserva, in, out);
+        
+        // ========= Envío de correo de notificación al anfitrión =========
+        enviarCorreoNotificacionAnfitrion(alojamiento.getAnfitrion(), huesped, alojamiento, reserva, in, out, numeroHuespedes);
+
+        return reserva;
+    }
+
+    /** Listar reservas del huésped autenticado como DTO con filtros y ordenamiento. */
     @Override
     @Transactional(readOnly = true)
-    public Page<ReservaResDTO> listarPorHuespedConDTO(UUID huespedId, Pageable pageable) {
-        return repo.findByHuespedIdWithFotos(huespedId, pageable).map(this::toRes);
+    public Page<ReservaResDTO> listarPorHuespedConDTO(UUID huespedId, LocalDate fechaInicio, LocalDate fechaFin, EstadoReserva estado, Pageable pageable) {
+        return repo.findByHuespedIdWithFotos(huespedId, fechaInicio, fechaFin, estado, pageable).map(this::toRes);
     }
 
     /** Listar reservas de los alojamientos del anfitrión autenticado como DTO. */
@@ -130,6 +151,21 @@ public class ReservaServiceImpl implements ReservaService {
     @Transactional(readOnly = true)
     public Page<ReservaResDTO> listarPorAnfitrionConDTO(UUID anfitrionId, Pageable pageable) {
         return repo.findByAlojamientoAnfitrionIdWithFotos(anfitrionId, pageable).map(this::toRes);
+    }
+
+    /** Listar reservas de un alojamiento específico como DTO con validación de autorización. */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReservaResDTO> listarPorAlojamientoConDTO(UUID alojamientoId, UUID anfitrionId, Pageable pageable) {
+        // Validar que el alojamiento existe y pertenece al anfitrión autenticado
+        var alojamiento = alojRepo.findById(alojamientoId)
+                .orElseThrow(() -> new EntityNotFoundException("Alojamiento no existe"));
+        
+        if (!alojamiento.getAnfitrion().getId().equals(anfitrionId)) {
+            throw new IllegalArgumentException("No tienes permisos para ver las reservas de este alojamiento");
+        }
+        
+        return repo.findByAlojamientoIdWithFotos(alojamientoId, pageable).map(this::toRes);
     }
 
     /** Obtener una reserva por ID como DTO. */
@@ -177,9 +213,24 @@ public class ReservaServiceImpl implements ReservaService {
         if (r.getEstado() == EstadoReserva.CANCELADA && r.isEliminada()) {
             return; // idempotente
         }
+        
+        // Validar que no se pueda cancelar con menos de 48 horas de anticipación
+        LocalDate fechaLimite = LocalDate.now().plusDays(2); // 48 horas = 2 días
+        if (r.getCheckIn().isBefore(fechaLimite)) {
+            throw new IllegalStateException("No se puede cancelar la reserva con menos de 48 horas de anticipación");
+        }
+        
         r.setEstado(EstadoReserva.CANCELADA);
         r.setEliminada(true);
         repo.save(r);
+
+        // ========= Cancelar recordatorios automáticos =========
+        try {
+            recordatorioService.cancelarRecordatoriosDeReserva(id);
+        } catch (Exception e) {
+            // Log del error pero no fallar la cancelación de la reserva
+            System.err.println("Error al cancelar recordatorios para reserva " + id + ": " + e.getMessage());
+        }
     }
 
     /** Obtener una reserva por ID (entidad). */
@@ -190,10 +241,102 @@ public class ReservaServiceImpl implements ReservaService {
                 .orElseThrow(() -> new EntityNotFoundException("Reserva no existe"));
     }
 
-    /** Utilidad: valida que in < out. */
+    /** Utilidad: valida que in < out y que no sean fechas pasadas. */
     private void validarRango(LocalDate in, LocalDate out) {
         if (in == null || out == null || !out.isAfter(in)) {
             throw new IllegalArgumentException("Rango de fechas inválido");
+        }
+        
+        // Validar que no se puedan crear reservas en fechas pasadas (permitir desde hoy)
+        if (in.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("No se pueden crear reservas en fechas pasadas");
+        }
+    }
+    
+    /** Método auxiliar para enviar correo de confirmación al huésped */
+    private void enviarCorreoConfirmacionHuesped(Usuario huesped, Alojamiento alojamiento, Reserva reserva, LocalDate in, LocalDate out) {
+        final String emailDestino = huesped.getEmail();
+        final String nombreHuesped = huesped.getNombre();
+        final String tituloAloj = alojamiento.getTitulo();
+        final long noches = ChronoUnit.DAYS.between(in, out);
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String checkInStr = in.format(fmt);
+        String checkOutStr = out.format(fmt);
+
+        String html = """
+            <h2>Confirmación de reserva</h2>
+            <p>Hola %s,</p>
+            <p>Tu reserva se ha creado correctamente.</p>
+            <p><b>Código de reserva:</b></p>
+            <h1 style="color:#007BFF;">%s</h1>
+            <p><b>Alojamiento:</b> %s</p>
+            <p><b>Check-in:</b> %s</p>
+            <p><b>Check-out:</b> %s</p>
+            <p><b>Noches:</b> %d</p>
+            <br/>
+            <p>Gracias por reservar con nosotros. Si tienes dudas, responde este correo.</p>
+            """.formatted(
+                nombreHuesped,
+                reserva.getId(),
+                tituloAloj,
+                checkInStr,
+                checkOutStr,
+                noches
+        );
+
+        try {
+            mailService.sendMail(emailDestino, "Confirmación de reserva", html);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al enviar el correo de confirmación: " + e.getMessage(), e);
+        }
+    }
+    
+    /** Método auxiliar para enviar correo de notificación al anfitrión */
+    private void enviarCorreoNotificacionAnfitrion(Usuario anfitrion, Usuario huesped, Alojamiento alojamiento, Reserva reserva, LocalDate in, LocalDate out, Integer numeroHuespedes) {
+        final String emailAnfitrion = anfitrion.getEmail();
+        final String nombreAnfitrion = anfitrion.getNombre();
+        final String nombreHuesped = huesped.getNombre();
+        final String emailHuesped = huesped.getEmail();
+        final String tituloAloj = alojamiento.getTitulo();
+        final long noches = ChronoUnit.DAYS.between(in, out);
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String checkInStr = in.format(fmt);
+        String checkOutStr = out.format(fmt);
+
+        String html = """
+            <h2>Nueva reserva en tu alojamiento</h2>
+            <p>Hola %s,</p>
+            <p>Has recibido una nueva reserva en tu alojamiento.</p>
+            <p><b>Código de reserva:</b></p>
+            <h1 style="color:#28a745;">%s</h1>
+            <p><b>Alojamiento:</b> %s</p>
+            <p><b>Huésped:</b> %s (%s)</p>
+            <p><b>Número de huéspedes:</b> %d</p>
+            <p><b>Check-in:</b> %s</p>
+            <p><b>Check-out:</b> %s</p>
+            <p><b>Noches:</b> %d</p>
+            <br/>
+            <p>Puedes contactar al huésped respondiendo a este correo o a través de la plataforma.</p>
+            <p>¡Prepárate para recibir a tus huéspedes!</p>
+            """.formatted(
+                nombreAnfitrion,
+                reserva.getId(),
+                tituloAloj,
+                nombreHuesped,
+                emailHuesped,
+                numeroHuespedes,
+                checkInStr,
+                checkOutStr,
+                noches
+        );
+
+        try {
+            mailService.sendMail(emailAnfitrion, "Nueva reserva en tu alojamiento", html);
+        } catch (Exception e) {
+            // Log el error pero no fallar la reserva por problemas de correo
+            System.err.println("Error al enviar correo al anfitrión: " + e.getMessage());
         }
     }
 

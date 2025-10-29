@@ -1,6 +1,7 @@
 package co.edu.uniquindio.gohost.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -30,10 +31,13 @@ public class Reserva {
     @NotNull
     private LocalDate checkOut;
 
+    @NotNull
+    @Min(value = 1, message = "El número de huéspedes debe ser al menos 1")
+    private Integer numeroHuespedes;
+
     @Enumerated(EnumType.STRING)
     private EstadoReserva estado = EstadoReserva.PENDIENTE;
 
     private boolean eliminada = false;
-
 
 }

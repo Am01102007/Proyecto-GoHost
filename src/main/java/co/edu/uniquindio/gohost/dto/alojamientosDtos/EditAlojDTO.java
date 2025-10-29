@@ -47,7 +47,8 @@ public record EditAlojDTO(
         @Positive(message = "La capacidad debe ser mayor que cero")
         Integer capacidad,
 
-        /** Lista de URLs de fotos (opcional). Si viene nula, no se modifica */
+        /** Lista de URLs de fotos (opcional). Si viene nula, no se modifica. Si viene, debe tener entre 1 y 10 fotos */
+        @Size(min = 1, max = 10, message = "Debe proporcionar entre 1 y 10 fotos")
         List<String> fotos,
 
         /** Activación/desactivación (opcional) */

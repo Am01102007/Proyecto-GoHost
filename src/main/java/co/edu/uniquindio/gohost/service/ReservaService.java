@@ -1,5 +1,6 @@
 package co.edu.uniquindio.gohost.service;
 
+import co.edu.uniquindio.gohost.dto.reservaDtos.CrearReservaDTO;
 import co.edu.uniquindio.gohost.dto.reservaDtos.ReservaResDTO;
 import co.edu.uniquindio.gohost.model.EstadoReserva;
 import co.edu.uniquindio.gohost.model.Reserva;
@@ -30,28 +31,26 @@ public interface ReservaService {
     Reserva crear(UUID alojamientoId, UUID huespedId, LocalDate in, LocalDate out);
 
     /**
-     * Crea una reserva y la retorna como DTO con alojamiento y fotos inicializados.
+     * Crear una reserva y retornar DTO (con alojamiento/fotos inicializados).
      *
-     * <p>Úsala desde el controller para evitar exponer entidades JPA y prevenir
-     * LazyInitializationException durante la serialización.</p>
-     *
-     * @param alojamientoId id del alojamiento
-     * @param huespedId     id del huésped que reserva
-     * @param in            fecha de check-in (inclusive)
-     * @param out           fecha de check-out (exclusiva)
+     * @param huespedId id del huésped
+     * @param dto datos de la reserva a crear
      * @return reserva creada como DTO
      */
     @Transactional
-    ReservaResDTO crearConDTO(UUID alojamientoId, UUID huespedId, LocalDate in, LocalDate out);
+    ReservaResDTO crearConDTO(UUID huespedId, CrearReservaDTO dto);
 
     /**
-     * Lista reservas realizadas por un huésped como DTO.
+     * Lista reservas realizadas por un huésped como DTO con filtros y ordenamiento.
      *
      * @param huespedId id del huésped
+     * @param fechaInicio fecha de inicio para filtrar (opcional)
+     * @param fechaFin fecha de fin para filtrar (opcional)
+     * @param estado estado de la reserva para filtrar (opcional)
      * @param pageable  configuración de paginación
-     * @return página de reservas del huésped
+     * @return página de reservas del huésped ordenadas por fecha más reciente
      */
-    Page<ReservaResDTO> listarPorHuespedConDTO(UUID huespedId, Pageable pageable);
+    Page<ReservaResDTO> listarPorHuespedConDTO(UUID huespedId, LocalDate fechaInicio, LocalDate fechaFin, EstadoReserva estado, Pageable pageable);
 
     /**
      * Lista reservas de los alojamientos de un anfitrión como DTO.
@@ -61,6 +60,17 @@ public interface ReservaService {
      * @return página de reservas de sus alojamientos
      */
     Page<ReservaResDTO> listarPorAnfitrionConDTO(UUID anfitrionId, Pageable pageable);
+
+    /**
+     * Lista reservas de un alojamiento específico como DTO.
+     * Valida que el anfitrión autenticado sea propietario del alojamiento.
+     *
+     * @param alojamientoId id del alojamiento
+     * @param anfitrionId   id del anfitrión autenticado (para validación)
+     * @param pageable      configuración de paginación
+     * @return página de reservas del alojamiento
+     */
+    Page<ReservaResDTO> listarPorAlojamientoConDTO(UUID alojamientoId, UUID anfitrionId, Pageable pageable);
 
     /**
      * Actualiza fechas y/o estado de una reserva como DTO.

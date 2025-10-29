@@ -1,5 +1,6 @@
 package co.edu.uniquindio.gohost.service.impl;
 import org.springframework.transaction.annotation.Transactional;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioPerfilDTO;
 import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.repository.UsuarioRepository;
 import co.edu.uniquindio.gohost.service.UsuarioService;
@@ -13,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
@@ -133,6 +135,11 @@ public class UsuarioServiceImpl implements UsuarioService {
         var u = repo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
 
+        // Validar que el usuario esté activo antes de permitir modificaciones
+        if (!u.isActivo()) {
+            throw new IllegalStateException("No se pueden modificar datos de un usuario inactivo");
+        }
+
         if (StringUtils.hasText(parcial.getNombre())) u.setNombre(parcial.getNombre());
         if (StringUtils.hasText(parcial.getApellidos())) u.setApellidos(parcial.getApellidos());
         if (StringUtils.hasText(parcial.getTelefono())) u.setTelefono(parcial.getTelefono());
@@ -140,6 +147,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         if (StringUtils.hasText(parcial.getPais())) u.setPais(parcial.getPais());
         if (parcial.getFechaNacimiento() != null) u.setFechaNacimiento(parcial.getFechaNacimiento());
         if (parcial.getTipoDocumento() != null) u.setTipoDocumento(parcial.getTipoDocumento());
+        if (StringUtils.hasText(parcial.getFotoPerfil())) u.setFotoPerfil(parcial.getFotoPerfil());
         if (StringUtils.hasText(parcial.getNumeroDocumento())) {
             // Verificar que no esté cambiando a un documento ya existente
             if (!parcial.getNumeroDocumento().equals(u.getNumeroDocumento())) {
@@ -149,15 +157,7 @@ public class UsuarioServiceImpl implements UsuarioService {
             }
             u.setNumeroDocumento(parcial.getNumeroDocumento());
         }
-        // Validar email
-        if (StringUtils.hasText(parcial.getEmail())) {
-            if (!parcial.getEmail().equals(u.getEmail())) {
-                if (repo.existsByEmail(parcial.getEmail())) {
-                    throw new IllegalArgumentException("Ya existe un usuario con ese correo");
-                }
-            }
-            u.setEmail(parcial.getEmail());
-        }
+        // Nota: El email ya no se puede modificar por seguridad
 
         return repo.save(u);
     }
@@ -188,9 +188,12 @@ public class UsuarioServiceImpl implements UsuarioService {
         // 🔹 Generar un código de 6 dígitos aleatorio
         String codigo = String.format("%06d", new Random().nextInt(999999));
 
-        // 🔹 Crear entidad de token de recuperación
+        // � Cifrar el código antes de guardarlo en la base de datos
+        String codigoCifrado = passwordEncoder.encode(codigo);
+
+        // � Crear entidad de token de recuperación con código cifrado
         PasswordResetToken resetToken = PasswordResetToken.builder()
-                .token(codigo)
+                .token(codigoCifrado)
                 .usuario(usuario)
                 .expiracion(LocalDateTime.now().plusMinutes(15))
                 .build();
@@ -255,9 +258,26 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Transactional
     @Override
     public void confirmarResetPassword(String codigo, String nuevaPassword) {
-        var resetToken = passwordResetTokenRepository.findByToken(codigo.trim())
-                .orElseThrow(() -> new EntityNotFoundException("Código inválido"));
+        // 🔍 Buscar todos los tokens activos y validar el código cifrado
+        List<PasswordResetToken> tokensActivos = passwordResetTokenRepository.findAll()
+                .stream()
+                .filter(token -> !token.expirado())
+                .toList();
 
+        PasswordResetToken resetToken = null;
+        for (PasswordResetToken token : tokensActivos) {
+            // 🔒 Verificar si el código ingresado coincide con el token cifrado
+            if (passwordEncoder.matches(codigo.trim(), token.getToken())) {
+                resetToken = token;
+                break;
+            }
+        }
+
+        if (resetToken == null) {
+            throw new EntityNotFoundException("Código inválido o expirado");
+        }
+
+        // Verificar nuevamente que no haya expirado (por seguridad)
         if (resetToken.expirado()) {
             passwordResetTokenRepository.delete(resetToken);
             throw new IllegalStateException("El código ha expirado");
@@ -268,6 +288,30 @@ public class UsuarioServiceImpl implements UsuarioService {
         repo.save(usuario);
 
         passwordResetTokenRepository.deleteByUsuarioId(usuario.getId());
+    }
+
+    @Override
+    public UsuarioPerfilDTO obtenerPerfil(UUID id) {
+        Usuario usuario = obtener(id);
+        
+        return new UsuarioPerfilDTO(
+                usuario.getId(),
+                usuario.getTipoDocumento(),
+                usuario.getNumeroDocumento(),
+                usuario.getEmail(),
+                usuario.getNombre(),
+                usuario.getApellidos(),
+                usuario.getFechaNacimiento(),
+                usuario.getTelefono(),
+                usuario.getCiudad(),
+                usuario.getPais(),
+                usuario.getDireccion(),
+                usuario.getFotoPerfil(),
+                usuario.getRol(),
+                usuario.isActivo(),
+                usuario.getCreadoEn(),
+                usuario.getActualizadoEn()
+        );
     }
 
 

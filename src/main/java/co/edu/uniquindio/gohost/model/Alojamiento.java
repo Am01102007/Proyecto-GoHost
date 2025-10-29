@@ -59,7 +59,7 @@ public class Alojamiento {
     /**
      * URLs (por ejemplo de Cloudinary). Se guarda el orden de inserción.
      */
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "alojamiento_fotos",
             joinColumns = @JoinColumn(name = "alojamiento_id", nullable = false)
@@ -68,6 +68,19 @@ public class Alojamiento {
     @Column(name = "foto_url", length = 500, nullable = false)
     @Builder.Default
     private List<String> fotos = new ArrayList<>();
+
+    /**
+     * Servicios/amenidades disponibles en el alojamiento.
+     */
+    @ElementCollection(targetClass = ServicioAlojamiento.class, fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "alojamiento_servicios",
+            joinColumns = @JoinColumn(name = "alojamiento_id", nullable = false)
+    )
+    @Enumerated(EnumType.STRING)
+    @Column(name = "servicio", nullable = false)
+    @Builder.Default
+    private List<ServicioAlojamiento> servicios = new ArrayList<>();
 
     @Column(nullable = false)
     @Builder.Default
@@ -116,5 +129,21 @@ public class Alojamiento {
         if (url != null) {
             this.fotos.remove(url);
         }
+    }
+
+    public void agregarServicio(ServicioAlojamiento servicio) {
+        if (servicio != null && !this.servicios.contains(servicio)) {
+            this.servicios.add(servicio);
+        }
+    }
+
+    public void eliminarServicio(ServicioAlojamiento servicio) {
+        if (servicio != null) {
+            this.servicios.remove(servicio);
+        }
+    }
+
+    public boolean tieneServicio(ServicioAlojamiento servicio) {
+        return servicio != null && this.servicios.contains(servicio);
     }
 }

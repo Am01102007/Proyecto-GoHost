@@ -28,13 +28,27 @@ public interface ReservaRepository extends JpaRepository<Reserva, UUID> {
           FROM Reserva r
          WHERE r.alojamiento.id = :alojamientoId
            AND r.eliminada = false
-           AND r.estado <> co.edu.uniquindio.gohost.model.EstadoReserva.CANCELADA
+           AND r.estado <> 'CANCELADA'
            AND r.checkIn < :fin
            AND r.checkOut > :inicio
     """)
     boolean existsTraslape(@Param("alojamientoId") UUID alojamientoId,
                            @Param("inicio") LocalDate inicio,
                            @Param("fin") LocalDate fin);
+
+    /**
+     * Verifica si el alojamiento tiene reservas futuras activas.
+     */
+    @Query("""
+        SELECT (COUNT(r) > 0)
+          FROM Reserva r
+         WHERE r.alojamiento.id = :alojamientoId
+           AND r.eliminada = false
+           AND r.estado <> 'CANCELADA'
+           AND r.checkIn >= :fechaActual
+    """)
+    boolean existsReservasFuturas(@Param("alojamientoId") UUID alojamientoId,
+                                  @Param("fechaActual") LocalDate fechaActual);
 
     /* =========================================================
        Métodos con JOIN FETCH para evitar LazyInitializationException
@@ -51,12 +65,23 @@ public interface ReservaRepository extends JpaRepository<Reserva, UUID> {
         LEFT JOIN FETCH a.direccion
         LEFT JOIN FETCH a.fotos
         WHERE r.huesped.id = :huespedId
+        AND (:fechaInicio IS NULL OR r.checkIn >= :fechaInicio)
+        AND (:fechaFin IS NULL OR r.checkOut <= :fechaFin)
+        AND (:estado IS NULL OR r.estado = :estado)
+        ORDER BY r.checkIn DESC
         """,
             countQuery = """
         SELECT COUNT(r) FROM Reserva r
         WHERE r.huesped.id = :huespedId
+        AND (:fechaInicio IS NULL OR r.checkIn >= :fechaInicio)
+        AND (:fechaFin IS NULL OR r.checkOut <= :fechaFin)
+        AND (:estado IS NULL OR r.estado = :estado)
         """)
-    Page<Reserva> findByHuespedIdWithFotos(@Param("huespedId") UUID huespedId, Pageable pageable);
+    Page<Reserva> findByHuespedIdWithFotos(@Param("huespedId") UUID huespedId, 
+                                           @Param("fechaInicio") LocalDate fechaInicio,
+                                           @Param("fechaFin") LocalDate fechaFin,
+                                           @Param("estado") EstadoReserva estado,
+                                           Pageable pageable);
 
     /**
      * Lista reservas de alojamientos de un anfitrión con datos cargados (huesped, alojamiento, dirección, fotos).
@@ -76,6 +101,24 @@ public interface ReservaRepository extends JpaRepository<Reserva, UUID> {
         WHERE a.anfitrion.id = :anfitrionId
         """)
     Page<Reserva> findByAlojamientoAnfitrionIdWithFotos(@Param("anfitrionId") UUID anfitrionId, Pageable pageable);
+
+    /**
+     * Lista reservas de un alojamiento específico con datos cargados (huesped, alojamiento, dirección, fotos).
+     * NOTA: fetch join de colección + paginación puede forzar paginación en memoria.
+     */
+    @Query(value = """
+        SELECT DISTINCT r FROM Reserva r
+        JOIN FETCH r.huesped
+        JOIN FETCH r.alojamiento a
+        LEFT JOIN FETCH a.direccion
+        LEFT JOIN FETCH a.fotos
+        WHERE a.id = :alojamientoId
+        """,
+            countQuery = """
+        SELECT COUNT(r) FROM Reserva r
+        WHERE r.alojamiento.id = :alojamientoId
+        """)
+    Page<Reserva> findByAlojamientoIdWithFotos(@Param("alojamientoId") UUID alojamientoId, Pageable pageable);
 
     /**
      * Obtiene una reserva por ID con todas las relaciones necesarias cargadas (huesped, alojamiento, dirección, fotos).

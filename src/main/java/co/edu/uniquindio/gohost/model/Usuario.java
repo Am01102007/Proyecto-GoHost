@@ -63,6 +63,10 @@ public class Usuario {
     /** País **/
     private String pais;
 
+    /** Foto de perfil (URL) **/
+    @Column(length = 500)
+    private String fotoPerfil;
+
     /**
      * Dirección completa (usada para geocodificación).
      * Puede ser calle + número + barrio.

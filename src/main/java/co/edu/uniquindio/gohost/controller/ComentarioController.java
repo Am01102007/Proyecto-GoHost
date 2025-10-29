@@ -3,11 +3,14 @@ package co.edu.uniquindio.gohost.controller;
 import co.edu.uniquindio.gohost.dto.comentariosDtos.ComentarioDTO;
 import co.edu.uniquindio.gohost.dto.comentariosDtos.RespuestaComentarioDTO;
 import co.edu.uniquindio.gohost.model.Comentario;
+import co.edu.uniquindio.gohost.security.AuthenticationHelper;
 import co.edu.uniquindio.gohost.service.ComentarioService;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -18,11 +21,14 @@ import java.util.UUID;
  * - Los anfitriones pueden responder comentarios.
  */
 @RestController
-@RequestMapping("/api")
-@RequiredArgsConstructor
+@RequestMapping("/api/comentarios")
 public class ComentarioController {
 
-    private final ComentarioService service;
+    @Autowired
+    private ComentarioService service;
+
+    @Autowired
+    private AuthenticationHelper authHelper;
 
     /**
      * Crear un nuevo comentario en un alojamiento.
@@ -37,7 +43,7 @@ public class ComentarioController {
     public Comentario crear(@PathVariable UUID alojamientoId,
                             @RequestBody ComentarioDTO dto,
                             HttpServletRequest request) {
-        UUID autorId = (UUID) request.getAttribute("usuarioId"); // del token
+        UUID autorId = authHelper.getAuthenticatedUserId(request);
         return service.crear(alojamientoId, autorId, dto.texto(), dto.calificacion());
     }
 
@@ -66,15 +72,11 @@ public class ComentarioController {
      * @return comentario actualizado con la respuesta
      */
     @PostMapping("/comentarios/{comentarioId}/respuesta")
+    @PreAuthorize("hasRole('ANFITRION')")
     public Comentario responder(@PathVariable UUID comentarioId,
                                 @RequestBody RespuestaComentarioDTO dto,
                                 HttpServletRequest request) {
-        String rol = (String) request.getAttribute("rol");
-        if (!"ANFITRION".equals(rol)) {
-            throw new RuntimeException("Solo los anfitriones pueden responder comentarios");
-        }
-
-        UUID anfitrionId = (UUID) request.getAttribute("usuarioId"); // del token
+        UUID anfitrionId = authHelper.getAuthenticatedUserId(request);
         return service.responder(comentarioId, anfitrionId, dto.respuesta());
     }
 }
