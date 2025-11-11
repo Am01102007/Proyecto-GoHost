@@ -32,7 +32,9 @@ spring:
       enabled: false
 
 server:
-  port: ${SERVER_PORT:8080}
+  # En entornos como Railway se inyecta PORT; usamos PORT si existe,
+  # y caemos a SERVER_PORT (local) o 8080 por defecto.
+  port: ${PORT:${SERVER_PORT:8080}}
 
 # CORS
 app:
