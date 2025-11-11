@@ -45,3 +45,36 @@ Variables clave:
 
 El proyecto incluye `flyway-core`. Puedes añadir scripts en `src/main/resources/db/migration` (`V1__init.sql`, etc.) y configurar `spring.flyway.*` por entorno.
 
+## Despliegue en Railway
+
+Railway soporta múltiples servicios en el mismo proyecto (backend y frontend separados).
+
+### Opción A: Auto-detección (Nixpacks)
+- Si tu repo tiene este proyecto en la raíz, Railway detectará Gradle/Maven automáticamente.
+- En este repo el proyecto vive en `proyectoAvanzada/`, por lo que es más fiable definir comandos:
+  - Build Command: `cd proyectoAvanzada && ./gradlew clean bootJar -x test`
+  - Start Command: `java -jar $(ls proyectoAvanzada/build/libs/*.jar | head -n 1)`
+
+### Opción B: Dockerfile (recomendada)
+- Se incluye `Dockerfile` multi-stage en la raíz del proyecto (`proyectoAvanzada/Dockerfile`).
+- Railway detecta el Dockerfile y construye la imagen:
+  - No necesitas definir Build/Start commands en el panel.
+
+### Variables de entorno (Service: Backend)
+- `SPRING_PROFILES_ACTIVE=prod`
+- `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`
+- `SPRING_JPA_DDL_AUTO=validate` (o `update` si lo necesitas)
+- `SPRING_FLYWAY_ENABLED=false` si tu Postgres no es compatible
+- `JWT_SECRET=<secreto>`
+- `CORS_ALLOWED_ORIGINS=https://<frontend-service>.up.railway.app,http://localhost:3000,http://localhost:5173`
+
+### Puerto
+- Railway inyecta `PORT`. En producción el backend usa `server.port: ${PORT:${SERVER_PORT:8080}}`.
+
+### Frontend (otro repositorio/servicio)
+- Añade el frontend como servicio separado en el mismo proyecto de Railway.
+- Apunta al backend con:
+  - Vite: `VITE_API_BASE_URL=https://<backend-service>.up.railway.app`
+  - CRA: `REACT_APP_API_BASE_URL=https://<backend-service>.up.railway.app`
+
+Más info: https://docs.railway.com/quick-start

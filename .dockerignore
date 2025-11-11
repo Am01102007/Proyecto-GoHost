@@ -1,0 +1,19 @@
+# Git
+.git
+
+# Gradle caches y salida
+.gradle
+build/
+out/
+
+# IDE y editor
+.idea/
+*.iml
+.vscode/
+
+# Node (si hubiera)
+node_modules/
+
+# Otros
+*.log
+*.tmp
