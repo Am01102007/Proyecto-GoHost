@@ -270,7 +270,9 @@ public class AlojamientoServiceImpl implements AlojamientoService {
         // Mapear DTO a entidad
         var alojamiento = Alojamiento.builder()
                 .titulo(dto.titulo())
-                .descripcion(dto.descripcion())
+                // La descripción es opcional en el DTO, pero la columna en BD no admite null.
+                // Para evitar errores 500 por constraint NOT NULL, usamos cadena vacía por defecto.
+                .descripcion(dto.descripcion() == null ? "" : dto.descripcion())
                 .direccion(dto.toDireccion())
                 .precioNoche(dto.precioNoche())
                 .capacidad(dto.capacidad())
