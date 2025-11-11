@@ -52,11 +52,19 @@ public class UsuarioServiceImpl implements UsuarioService {
      */
     @Override
     public Usuario crear(Usuario u) {
-        if (repo.existsByEmail(u.getEmail())) {
-            throw new IllegalArgumentException("Ya existe un usuario con ese correo");
+        // Normalizar entradas
+        String emailNorm = (u.getEmail() != null) ? u.getEmail().trim().toLowerCase() : null;
+        String docNorm = (u.getNumeroDocumento() != null) ? u.getNumeroDocumento().trim() : null;
+
+        u.setEmail(emailNorm);
+        u.setNumeroDocumento(docNorm);
+
+        // Validaciones de unicidad (case-insensitive para email)
+        if (emailNorm != null && repo.existsByEmailIgnoreCase(emailNorm)) {
+            throw new IllegalStateException("Ya existe un usuario con ese correo");
         }
-        if (repo.existsByNumeroDocumento(u.getNumeroDocumento())) {
-            throw new IllegalArgumentException("Ya existe un usuario con ese número de documento");
+        if (StringUtils.hasText(docNorm) && repo.existsByNumeroDocumento(docNorm)) {
+            throw new IllegalStateException("Ya existe un usuario con ese número de documento");
         }
 
         u.setPassword(passwordEncoder.encode(u.getPassword()));
@@ -112,7 +120,8 @@ public class UsuarioServiceImpl implements UsuarioService {
         log.info("=== INTENTO DE LOGIN ===");
         log.info("Email recibido: {}", email);
 
-        Optional<Usuario> usuarioOpt = repo.findByEmail(email);
+        String emailNorm = (email != null) ? email.trim().toLowerCase() : null;
+        Optional<Usuario> usuarioOpt = repo.findByEmailIgnoreCase(emailNorm);
 
         if (usuarioOpt.isEmpty()) {
             return Optional.empty();
@@ -154,12 +163,13 @@ public class UsuarioServiceImpl implements UsuarioService {
         if (StringUtils.hasText(parcial.getFotoPerfil())) u.setFotoPerfil(parcial.getFotoPerfil());
         if (StringUtils.hasText(parcial.getNumeroDocumento())) {
             // Verificar que no esté cambiando a un documento ya existente
-            if (!parcial.getNumeroDocumento().equals(u.getNumeroDocumento())) {
-                if (repo.existsByNumeroDocumento(parcial.getNumeroDocumento())) {
-                    throw new IllegalArgumentException("Ya existe un usuario con ese número de documento");
+            String nuevoDoc = parcial.getNumeroDocumento().trim();
+            if (!nuevoDoc.equals(u.getNumeroDocumento())) {
+                if (repo.existsByNumeroDocumento(nuevoDoc)) {
+                    throw new IllegalStateException("Ya existe un usuario con ese número de documento");
                 }
             }
-            u.setNumeroDocumento(parcial.getNumeroDocumento());
+            u.setNumeroDocumento(nuevoDoc);
         }
         // Nota: El email ya no se puede modificar por seguridad
 
@@ -182,8 +192,9 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     public void resetPassword(String email) {
-        // Buscar usuario por correo
-        var usuario = repo.findByEmail(email)
+        // Normalizar y buscar usuario por correo (case-insensitive)
+        String emailNorm = (email != null) ? email.trim().toLowerCase() : null;
+        var usuario = repo.findByEmailIgnoreCase(emailNorm)
                 .orElseThrow(() -> new EntityNotFoundException("No existe un usuario con ese correo"));
 
         // 🧹 Eliminar cualquier token previo del mismo usuario
@@ -219,7 +230,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         // 🔹 Enviar el correo
         try {
-            mailService.sendMail(email, "Código de recuperación de contraseña", html);
+            mailService.sendMail(emailNorm, "Código de recuperación de contraseña", html);
         } catch (Exception e) {
             throw new MailServiceException("Error al enviar el correo de recuperación: " + e.getMessage(), e);
         }
@@ -260,7 +271,8 @@ public class UsuarioServiceImpl implements UsuarioService {
      */
     @Override
     public boolean existePorEmail(String email) {
-        return repo.existsByEmail(email);
+        String emailNorm = (email != null) ? email.trim().toLowerCase() : null;
+        return repo.existsByEmailIgnoreCase(emailNorm);
     }
 
     /**
@@ -268,7 +280,8 @@ public class UsuarioServiceImpl implements UsuarioService {
      */
     @Override
     public boolean existePorNumeroDocumento(String numeroDocumento) {
-        return repo.existsByNumeroDocumento(numeroDocumento);
+        String docNorm = (numeroDocumento != null) ? numeroDocumento.trim() : null;
+        return repo.existsByNumeroDocumento(docNorm);
     }
     @Transactional
     @Override

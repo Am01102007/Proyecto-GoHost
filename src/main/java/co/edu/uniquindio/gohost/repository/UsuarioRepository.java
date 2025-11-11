@@ -21,12 +21,22 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
     Optional<Usuario> findByEmail(String email);
 
     /**
+     * Busca un usuario por su email ignorando mayúsculas/minúsculas.
+     */
+    Optional<Usuario> findByEmailIgnoreCase(String email);
+
+    /**
      * Verifica si ya existe un usuario con el correo dado.
      *
      * @param email correo electrónico a verificar.
      * @return true si existe, false en caso contrario.
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Verifica existencia de usuario por email de forma case-insensitive.
+     */
+    boolean existsByEmailIgnoreCase(String email);
 
     /**
      * Verifica si ya existe un usuario con el número de documento dado.

@@ -36,15 +36,6 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<Usuario> register(@Valid @RequestBody RegistroDTO dto) {
-        // Unicidad por email
-        if (usuarios.existePorEmail(dto.email())) {
-            throw new IllegalArgumentException("Ya existe un usuario con ese correo");
-        }
-        // Unicidad por número de documento
-        if (usuarios.existePorNumeroDocumento(dto.numeroDocumento())) {
-            throw new IllegalArgumentException("Ya existe un usuario con ese número de documento");
-        }
-
         // Construcción del usuario (el password se encripta en el service)
         var u = Usuario.builder()
                 .email(dto.email())
@@ -72,15 +63,6 @@ public class AuthController {
      */
     @PostMapping("/register/anfitrion")
     public ResponseEntity<Usuario> registerHost(@Valid @RequestBody RegistroDTO dto) {
-        // Unicidad por email
-        if (usuarios.existePorEmail(dto.email())) {
-            throw new IllegalArgumentException("Ya existe un usuario con ese correo");
-        }
-        // Unicidad por número de documento
-        if (usuarios.existePorNumeroDocumento(dto.numeroDocumento())) {
-            throw new IllegalArgumentException("Ya existe un usuario con ese número de documento");
-        }
-
         // Construcción del usuario (el password se encripta en el service)
         var u = Usuario.builder()
                 .email(dto.email())
