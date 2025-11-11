@@ -1,0 +1,34 @@
+# Overrides for development profile (nested project)
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://ep-mute-hat-a8eke3t8-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require
+    username: neondb_owner
+    password: npg_etw8D2aKjHnL
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate:
+  h2:
+    console:
+      enabled: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+nube:
+  imagenes:
+    habilitado: ${CLOUDINARY_ENABLED:true}
+    nombre-nube: ${CLOUDINARY_CLOUD_NAME:dnlsgjpbz}
+    clave-api: ${CLOUDINARY_API_KEY:575249431351638}
+    clave-secreta: ${CLOUDINARY_API_SECRET:wL4xW8u4K2qlhfsLKnujAiysMX0}
+    carpeta: ${CLOUDINARY_FOLDER:gohost/imagenes}
+    tamano-maximo: ${CLOUDINARY_MAX_SIZE:5242880}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:dnlsgjpbz}
+  api-key: ${CLOUDINARY_API_KEY:575249431351638}
+  api-secret: ${CLOUDINARY_API_SECRET:wL4xW8u4K2qlhfsLKnujAiysMX0}

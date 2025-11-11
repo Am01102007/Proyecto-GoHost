@@ -85,10 +85,10 @@ public class RestExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, msg, req);
     }
 
-    /** 400 - JSON mal formado / formato de fecha inválido */
+    /** 400 - JSON mal formado */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> unreadable(HttpMessageNotReadableException ex, HttpServletRequest req) {
-        String msg = "Cuerpo de la solicitud inválido o con formato de fecha incorrecto (use yyyy-MM-dd).";
+        String msg = "Cuerpo de la solicitud inválido o JSON mal formado.";
         return build(HttpStatus.BAD_REQUEST, msg, req);
     }
 
@@ -132,6 +132,13 @@ public class RestExceptionHandler {
         String mensaje = "Error de acceso a datos: relación no cargada. Contacte al administrador.";
         log.warn("LazyInitializationException en {}: {}", req.getRequestURI(), ex.getMessage());
         return build(HttpStatus.INTERNAL_SERVER_ERROR, mensaje, req);
+    }
+
+    /** 502 - Error al comunicarse con servicios externos (Cloudinary, etc.) */
+    @ExceptionHandler(java.io.IOException.class)
+    public ResponseEntity<ApiError> ioError(java.io.IOException ex, HttpServletRequest req) {
+        log.error("IOException en {}: {}", req.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), req);
     }
 
     /** 500 - NullPointerException en lógica de negocio */

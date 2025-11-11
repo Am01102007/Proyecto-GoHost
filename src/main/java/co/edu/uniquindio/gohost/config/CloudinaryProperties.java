@@ -35,5 +35,5 @@ public class CloudinaryProperties {
     private String carpeta = "gohost/imagenes";
 
     /** Tamaño máximo permitido (en bytes). Por defecto 5MB. */
-    private long tamanoMaximo = 5 * 1024 * 1024;
+    private long tamanoMaximo = 10 * 1024 * 1024;
 }

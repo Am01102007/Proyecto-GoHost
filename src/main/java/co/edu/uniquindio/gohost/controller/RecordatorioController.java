@@ -11,6 +11,7 @@ import java.util.UUID;
 
 /**
  * Controlador REST para gestionar recordatorios y preferencias de notificaciones.
+ * Utiliza manejo centralizado de excepciones via RestExceptionHandler.
  */
 @RestController
 @RequestMapping("/api/recordatorios")
@@ -24,15 +25,8 @@ public class RecordatorioController {
      * Obtener todos los recordatorios de una reserva específica.
      */
     @GetMapping("/reserva/{reservaId}")
-    public ResponseEntity<List<NotificacionRecordatorio>> obtenerRecordatoriosDeReserva(
-            @PathVariable UUID reservaId) {
-        try {
-            List<NotificacionRecordatorio> recordatorios = 
-                recordatorioService.obtenerRecordatoriosDeReserva(reservaId);
-            return ResponseEntity.ok(recordatorios);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+    public List<NotificacionRecordatorio> obtenerRecordatoriosDeReserva(@PathVariable UUID reservaId) {
+        return recordatorioService.obtenerRecordatoriosDeReserva(reservaId);
     }
 
     /**
@@ -40,12 +34,8 @@ public class RecordatorioController {
      */
     @DeleteMapping("/reserva/{reservaId}")
     public ResponseEntity<Void> cancelarRecordatoriosDeReserva(@PathVariable UUID reservaId) {
-        try {
-            recordatorioService.cancelarRecordatoriosDeReserva(reservaId);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        recordatorioService.cancelarRecordatoriosDeReserva(reservaId);
+        return ResponseEntity.ok().build();
     }
 
     /**
@@ -53,12 +43,8 @@ public class RecordatorioController {
      */
     @PutMapping("/{recordatorioId}/marcar-enviado")
     public ResponseEntity<Void> marcarComoEnviado(@PathVariable UUID recordatorioId) {
-        try {
-            recordatorioService.marcarComoEnviado(recordatorioId);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        recordatorioService.marcarComoEnviado(recordatorioId);
+        return ResponseEntity.ok().build();
     }
 
     /**
@@ -68,12 +54,8 @@ public class RecordatorioController {
     public ResponseEntity<Void> marcarComoFallido(
             @PathVariable UUID recordatorioId,
             @RequestParam String mensajeError) {
-        try {
-            recordatorioService.marcarComoFallido(recordatorioId, mensajeError);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        recordatorioService.marcarComoFallido(recordatorioId, mensajeError);
+        return ResponseEntity.ok().build();
     }
 
     /**
@@ -81,13 +63,8 @@ public class RecordatorioController {
      */
     @PostMapping("/procesar-pendientes")
     public ResponseEntity<String> procesarRecordatoriosPendientes() {
-        try {
-            recordatorioService.procesarRecordatoriosPendientes();
-            return ResponseEntity.ok("Recordatorios procesados exitosamente");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .body("Error al procesar recordatorios: " + e.getMessage());
-        }
+        recordatorioService.procesarRecordatoriosPendientes();
+        return ResponseEntity.ok("Recordatorios procesados exitosamente");
     }
 
     /**
@@ -95,12 +72,7 @@ public class RecordatorioController {
      */
     @PostMapping("/reintentar-fallidos")
     public ResponseEntity<String> reintentarRecordatoriosFallidos() {
-        try {
-            recordatorioService.reintentarRecordatoriosFallidos();
-            return ResponseEntity.ok("Recordatorios reintentados exitosamente");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .body("Error al reintentar recordatorios: " + e.getMessage());
-        }
+        recordatorioService.reintentarRecordatoriosFallidos();
+        return ResponseEntity.ok("Recordatorios reintentados exitosamente");
     }
 }

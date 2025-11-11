@@ -89,6 +89,7 @@ public class Usuario {
     private Rol rol;
 
     /** Activo **/
+    @Builder.Default
     private boolean activo = true;
 
     /** Creado **/

@@ -87,7 +87,14 @@ public class AlojamientoServiceImpl implements AlojamientoService {
     @Override
     @Transactional(readOnly = true)
     public Page<AlojamientoResDTO> listar(Pageable pageable) {
-        return alojamientoRepository.findAllWithFotos(pageable).map(this::toRes);
+        // Evitar fetch join de colección con paginación (causa errores en Hibernate)
+        // Mapear explícitamente el contenido para materializar las colecciones lazy
+        Page<Alojamiento> page = alojamientoRepository.findAll(pageable);
+        List<AlojamientoResDTO> content = page.getContent()
+                .stream()
+                .map(this::toRes)
+                .collect(Collectors.toList());
+        return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
 
@@ -233,14 +240,18 @@ public class AlojamientoServiceImpl implements AlojamientoService {
         }
     }
     private AlojamientoResDTO toRes(Alojamiento a) {
+        // Copiar colecciones lazy para materializarlas dentro de la transacción
+        List<String> fotos = a.getFotos() == null ? List.of() : new ArrayList<>(a.getFotos());
+        List<ServicioAlojamiento> servicios = a.getServicios() == null ? List.of() : new ArrayList<>(a.getServicios());
+
         return new AlojamientoResDTO(
                 a.getId(),
                 a.getTitulo(),
                 a.getDescripcion(),
                 a.getPrecioNoche(),
                 a.getCapacidad(),
-                a.getFotos() == null ? List.of() : a.getFotos(),
-                a.getServicios() == null ? List.of() : a.getServicios(),
+                fotos,
+                servicios,
                 a.getDireccion() == null ? "Sin ciudad" : a.getDireccion().getCiudad(),
                 a.getAnfitrion() == null ? null : a.getAnfitrion().getId()
         );
@@ -441,13 +452,13 @@ public class AlojamientoServiceImpl implements AlojamientoService {
     @Transactional(readOnly = true)
     @Deprecated
     public MetricasAlojamientoDTO obtenerMetricas(UUID alojamientoId) {
-        Optional<Object[]> resultado = alojamientoRepository.obtenerMetricasNative(alojamientoId);
-        
-        if (resultado.isEmpty()) {
+        List<Object[]> resultados = alojamientoRepository.obtenerMetricasNative(alojamientoId);
+
+        if (resultados == null || resultados.isEmpty()) {
             throw new IllegalArgumentException("Alojamiento no encontrado: " + alojamientoId);
         }
-        
-        Object[] row = resultado.get();
+
+        Object[] row = resultados.get(0);
         return new MetricasAlojamientoDTO(
             (String) row[0],           // titulo
             ((Number) row[1]).doubleValue(),  // promedio_calificacion

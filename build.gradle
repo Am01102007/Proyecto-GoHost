@@ -52,7 +52,7 @@ dependencies {
     // =========================================================
     implementation 'org.flywaydb:flyway-core:10.16.0' // Migraciones (si se usa)
     runtimeOnly 'org.postgresql:postgresql'           // Driver PostgreSQL
-    runtimeOnly 'com.h2database:h2'                   // DB en memoria (dev/tests)
+    // H2 removido para asegurar uso exclusivo de Neon/PostgreSQL
 
     // =========================================================
     // JWT (tokens)

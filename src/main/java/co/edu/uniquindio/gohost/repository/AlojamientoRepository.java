@@ -106,14 +106,14 @@ public interface AlojamientoRepository extends JpaRepository<Alojamiento, UUID> 
             COUNT(DISTINCT r.id) as total_reservas,
             COUNT(DISTINCT CASE WHEN r.estado = 'COMPLETADA' THEN r.id END) as reservas_completadas,
             COUNT(DISTINCT CASE WHEN r.estado = 'CANCELADA' THEN r.id END) as reservas_canceladas,
-            COALESCE(SUM(CASE WHEN r.estado = 'COMPLETADA' THEN r.precio_total ELSE 0 END), 0) as ingresos_totales
+            COALESCE(SUM(CASE WHEN r.estado = 'COMPLETADA' THEN (r.check_out - r.check_in) * a.precio_noche ELSE CAST(0 AS NUMERIC) END), 0) as ingresos_totales
         FROM alojamientos a
-        LEFT JOIN reservas r ON r.alojamiento_id = a.id AND r.eliminada = false
-        LEFT JOIN comentarios c ON c.alojamiento_id = a.id
+        LEFT JOIN reserva r ON r.alojamiento_id = a.id AND r.eliminada = false
+        LEFT JOIN comentario c ON c.alojamiento_id = a.id
         WHERE a.id = :alojamientoId AND a.activo = true
         GROUP BY a.id, a.titulo
     """, nativeQuery = true)
-    Optional<Object[]> obtenerMetricasNative(@Param("alojamientoId") UUID alojamientoId);
+    List<Object[]> obtenerMetricasNative(@Param("alojamientoId") UUID alojamientoId);
 
     /**
      * Obtiene métricas de todos los alojamientos de un anfitrión con filtros de fecha
@@ -125,12 +125,12 @@ public interface AlojamientoRepository extends JpaRepository<Alojamiento, UUID> 
             COUNT(DISTINCT r.id) as total_reservas,
             COUNT(DISTINCT CASE WHEN r.estado = 'COMPLETADA' THEN r.id END) as reservas_completadas,
             COUNT(DISTINCT CASE WHEN r.estado = 'CANCELADA' THEN r.id END) as reservas_canceladas,
-            COALESCE(SUM(CASE WHEN r.estado = 'COMPLETADA' THEN r.precio_total ELSE 0 END), 0) as ingresos_totales
+            COALESCE(SUM(CASE WHEN r.estado = 'COMPLETADA' THEN (r.check_out - r.check_in) * a.precio_noche ELSE CAST(0 AS NUMERIC) END), 0) as ingresos_totales
         FROM alojamientos a
-        LEFT JOIN reservas r ON r.alojamiento_id = a.id AND r.eliminada = false 
+        LEFT JOIN reserva r ON r.alojamiento_id = a.id AND r.eliminada = false 
             AND (:fechaInicio IS NULL OR r.check_in >= :fechaInicio)
             AND (:fechaFin IS NULL OR r.check_out <= :fechaFin)
-        LEFT JOIN comentarios c ON c.alojamiento_id = a.id
+        LEFT JOIN comentario c ON c.alojamiento_id = a.id
         WHERE a.anfitrion_id = :anfitrionId AND a.activo = true
         GROUP BY a.id, a.titulo
     """, nativeQuery = true)

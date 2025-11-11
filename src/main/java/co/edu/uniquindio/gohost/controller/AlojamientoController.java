@@ -10,18 +10,24 @@ import co.edu.uniquindio.gohost.dto.alojamientosDtos.MetricasAlojamientoDTO;
 import co.edu.uniquindio.gohost.model.Alojamiento;
 import co.edu.uniquindio.gohost.security.AuthenticationHelper;
 import co.edu.uniquindio.gohost.service.AlojamientoService;
+import co.edu.uniquindio.gohost.service.image.ImageService;
+import co.edu.uniquindio.gohost.service.image.ImageUploadResult;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -33,23 +39,65 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/alojamientos")
+@RequiredArgsConstructor
+@Slf4j
 public class AlojamientoController {
 
-    @Autowired
-    private AlojamientoService service;
+    private final AlojamientoService service;
 
-    @Autowired
-    private AuthenticationHelper authHelper;
+    private final AuthenticationHelper authHelper;
+
+    private final ImageService imageService;
 
     /**
      * Crea un alojamiento para el anfitrión autenticado.
      * Requiere rol ANFITRION (validado automáticamente por Spring Security).
      */
     @PreAuthorize("hasRole('ANFITRION')")
-    @PostMapping
-    public AlojamientoCreatedDTO crear(@Valid @RequestBody CrearAlojDTO dto, HttpServletRequest request) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AlojamientoCreatedDTO> crear(
+            @Valid @RequestPart("data") CrearAlojDTO dto,
+            @RequestPart("files") MultipartFile[] files,
+            HttpServletRequest request) throws java.io.IOException {
         UUID anfitrionId = authHelper.getAuthenticatedUserId(request);
-        return service.crearConDTO(anfitrionId, dto);
+
+        try {
+            if (files == null || files.length == 0) {
+                throw new IllegalArgumentException("Debe enviar entre 1 y 10 imágenes");
+            }
+            if (files.length < 1 || files.length > 10) {
+                throw new IllegalArgumentException("Cantidad de imágenes inválida: " + files.length);
+            }
+
+            List<String> urls = new ArrayList<>(files.length);
+            for (MultipartFile f : files) {
+                ImageUploadResult res = imageService.subirImagen(f);
+                urls.add(res.secureUrl() != null ? res.secureUrl() : res.url());
+            }
+
+            CrearAlojDTO dtoConFotos = new CrearAlojDTO(
+                    dto.titulo(),
+                    dto.descripcion(),
+                    dto.ciudad(),
+                    dto.pais(),
+                    dto.calle(),
+                    dto.zip(),
+                    dto.precioNoche(),
+                    dto.capacidad(),
+                    urls,
+                    dto.servicios()
+            );
+
+            AlojamientoCreatedDTO creado = service.crearConDTO(anfitrionId, dtoConFotos);
+            URI location = URI.create("/api/alojamientos/" + creado.id());
+            return ResponseEntity.created(location).body(creado);
+        } catch (IllegalArgumentException iae) {
+            log.warn("Datos inválidos al crear alojamiento: {}", iae.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (java.io.IOException ioe) {
+            log.error("Fallo de proveedor de imágenes al crear alojamiento: {}", ioe.getMessage(), ioe);
+            return ResponseEntity.status(502).build();
+        }
     }
 
     @PreAuthorize("hasRole('ANFITRION')")

@@ -137,7 +137,8 @@ public class ImageServiceImpl implements ImageService {
             if (ex instanceof IOException io) {
                 throw io;
             }
-            throw new IOException("Fallo al subir imagen al proveedor", ex);
+            // Propaga detalle del proveedor para diagnóstico (mapeado a 502 por el handler)
+            throw new IOException("Error del proveedor de imágenes: " + ex.getMessage(), ex);
         }
     }
 
@@ -165,7 +166,7 @@ public class ImageServiceImpl implements ImageService {
             if (ex instanceof IOException io) {
                 throw io;
             }
-            throw new IOException("Fallo al eliminar imagen en el proveedor", ex);
+            throw new IOException("Error del proveedor de imágenes al eliminar: " + ex.getMessage(), ex);
         }
     }
 

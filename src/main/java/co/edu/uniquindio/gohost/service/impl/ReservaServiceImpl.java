@@ -14,6 +14,7 @@ import co.edu.uniquindio.gohost.service.RecordatorioService;
 import co.edu.uniquindio.gohost.service.mail.MailService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReservaServiceImpl implements ReservaService {
 
     private final ReservaRepository repo;
@@ -75,7 +77,7 @@ public class ReservaServiceImpl implements ReservaService {
             recordatorioService.programarRecordatoriosParaReserva(reserva);
         } catch (Exception e) {
             // Log del error pero no fallar la creación de la reserva
-            System.err.println("Error al programar recordatorios para reserva " + reserva.getId() + ": " + e.getMessage());
+            log.error("Error al programar recordatorios para reserva {}: {}", reserva.getId(), e.getMessage(), e);
         }
 
         return reserva;
@@ -85,6 +87,11 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     @Transactional
     public ReservaResDTO crearConDTO(UUID huespedId, CrearReservaDTO dto) {
+        // Validar que el número de huéspedes no sea nulo
+        if (dto.numeroHuespedes() == null) {
+            throw new IllegalArgumentException("El número de huéspedes es obligatorio");
+        }
+        
         // Validar que el número de huéspedes no exceda la capacidad del alojamiento
         var alojamiento = alojRepo.findById(dto.alojamientoId())
                 .orElseThrow(() -> new EntityNotFoundException("Alojamiento no existe"));
@@ -229,7 +236,7 @@ public class ReservaServiceImpl implements ReservaService {
             recordatorioService.cancelarRecordatoriosDeReserva(id);
         } catch (Exception e) {
             // Log del error pero no fallar la cancelación de la reserva
-            System.err.println("Error al cancelar recordatorios para reserva " + id + ": " + e.getMessage());
+            log.error("Error al cancelar recordatorios para reserva {}: {}", id, e.getMessage(), e);
         }
     }
 
@@ -288,7 +295,8 @@ public class ReservaServiceImpl implements ReservaService {
         try {
             mailService.sendMail(emailDestino, "Confirmación de reserva", html);
         } catch (Exception e) {
-            throw new RuntimeException("Error al enviar el correo de confirmación: " + e.getMessage(), e);
+            // Log del error pero no fallar la creación de la reserva por problemas de correo
+            log.error("Error al enviar correo de confirmación al huésped {}: {}", huesped.getId(), e.getMessage(), e);
         }
     }
     
@@ -336,7 +344,7 @@ public class ReservaServiceImpl implements ReservaService {
             mailService.sendMail(emailAnfitrion, "Nueva reserva en tu alojamiento", html);
         } catch (Exception e) {
             // Log el error pero no fallar la reserva por problemas de correo
-            System.err.println("Error al enviar correo al anfitrión: " + e.getMessage());
+            log.error("Error al enviar correo al anfitrión {} para reserva {}: {}", anfitrion.getId(), reserva.getId(), e.getMessage(), e);
         }
     }
 

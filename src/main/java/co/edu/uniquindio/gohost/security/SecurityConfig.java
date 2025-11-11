@@ -90,8 +90,7 @@ public class SecurityConfig {
                                 "/api/alojamientos/search",
                                 "/api/alojamientos",
                                 "/actuator/health",
-                                "/error",
-                                "/h2-console/**"
+                                "/error"
 
                         ).permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
@@ -157,7 +156,8 @@ public class SecurityConfig {
                            HttpStatus status,
                            ApiError error) throws IOException {
         response.setStatus(status.value());
-        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json;charset=UTF-8");
         new ObjectMapper().writeValue(response.getWriter(), error);
     }
 }

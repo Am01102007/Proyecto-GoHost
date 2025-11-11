@@ -52,9 +52,8 @@ public record CrearAlojDTO(
         @Positive(message = "La capacidad debe ser mayor que cero")
         Integer capacidad,
 
-        /** URLs de imágenes (Cloudinary u otro proveedor) */
-        @NotNull(message = "Las fotos son obligatorias")
-        @Size(min = 1, max = 10, message = "Debe incluir entre 1 y 10 fotos")
+        /** URLs de imágenes (Cloudinary u otro proveedor). En flujo multipart se generan automáticamente. */
+        @Size(max = 10, message = "No puede superar 10 fotos")
         List<String> fotos,
 
         /** Servicios/amenidades disponibles en el alojamiento */

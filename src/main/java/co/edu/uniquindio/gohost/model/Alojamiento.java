@@ -59,7 +59,7 @@ public class Alojamiento {
     /**
      * URLs (por ejemplo de Cloudinary). Se guarda el orden de inserción.
      */
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
             name = "alojamiento_fotos",
             joinColumns = @JoinColumn(name = "alojamiento_id", nullable = false)
@@ -72,7 +72,7 @@ public class Alojamiento {
     /**
      * Servicios/amenidades disponibles en el alojamiento.
      */
-    @ElementCollection(targetClass = ServicioAlojamiento.class, fetch = FetchType.EAGER)
+    @ElementCollection(targetClass = ServicioAlojamiento.class, fetch = FetchType.LAZY)
     @CollectionTable(
             name = "alojamiento_servicios",
             joinColumns = @JoinColumn(name = "alojamiento_id", nullable = false)

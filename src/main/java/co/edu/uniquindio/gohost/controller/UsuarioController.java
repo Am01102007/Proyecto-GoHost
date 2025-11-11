@@ -9,17 +9,22 @@ import co.edu.uniquindio.gohost.dto.usuarioDtos.ResetPasswordDTO;
 import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.security.AuthenticationHelper;
 import co.edu.uniquindio.gohost.service.UsuarioService;
+import co.edu.uniquindio.gohost.service.image.ImageService;
+import co.edu.uniquindio.gohost.service.image.ImageUploadResult;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Operaciones de perfil de usuario.
@@ -27,6 +32,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/usuarios")
+@Slf4j
 public class UsuarioController {
 
     @Autowired
@@ -34,6 +40,9 @@ public class UsuarioController {
 
     @Autowired
     private AuthenticationHelper authHelper;
+
+    @Autowired
+    private ImageService imageService;
 
     /** 
      * Lista paginada de usuarios como DTO.
@@ -58,13 +67,63 @@ public class UsuarioController {
     }
 
     /**
-     * Edición parcial del perfil del usuario autenticado.
-     * PATCH /api/usuarios/me
+     * Edición parcial del perfil del usuario autenticado con carga opcional de foto.
+     * PATCH /api/usuarios/me (multipart/form-data)
      */
-    @PatchMapping("/me")
-    public UsuarioPerfilDTO editar(HttpServletRequest request, @RequestBody EditarUsuarioDTO dto) {
+    @PatchMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UsuarioPerfilDTO> editar(
+            HttpServletRequest request,
+            @RequestPart("data") EditarUsuarioDTO dto,
+            @RequestPart(value = "fotoPerfil", required = false) MultipartFile fotoPerfil
+    ) throws java.io.IOException {
         UUID id = authHelper.getAuthenticatedUserId(request);
-        return service.actualizarPerfil(id, dto);
+
+        try {
+            EditarUsuarioDTO dtoFinal = dto;
+            if (fotoPerfil != null && !fotoPerfil.isEmpty()) {
+                ImageUploadResult res = imageService.subirImagen(fotoPerfil);
+                String url = res.secureUrl() != null ? res.secureUrl() : res.url();
+                dtoFinal = new EditarUsuarioDTO(
+                        dto.nombre(),
+                        dto.apellidos(),
+                        dto.telefono(),
+                        dto.ciudad(),
+                        dto.pais(),
+                        dto.fechaNacimiento(),
+                        dto.tipoDocumento(),
+                        dto.numeroDocumento(),
+                        url
+                );
+            }
+
+            UsuarioPerfilDTO actualizado = service.actualizarPerfil(id, dtoFinal);
+            return ResponseEntity.ok(actualizado);
+        } catch (IllegalArgumentException iae) {
+            log.warn("Datos inválidos al actualizar perfil: {}", iae.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (java.io.IOException ioe) {
+            log.error("Fallo de proveedor de imágenes al actualizar perfil: {}", ioe.getMessage(), ioe);
+            return ResponseEntity.status(502).build();
+        }
+    }
+
+    /**
+     * Compatibilidad retroactiva: edición con JSON puro.
+     * PATCH /api/usuarios/me (application/json)
+     */
+    @PatchMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UsuarioPerfilDTO> editarJson(
+            HttpServletRequest request,
+            @RequestBody EditarUsuarioDTO dto
+    ) {
+        try {
+            UUID id = authHelper.getAuthenticatedUserId(request);
+            UsuarioPerfilDTO actualizado = service.actualizarPerfil(id, dto);
+            return ResponseEntity.ok(actualizado);
+        } catch (IllegalArgumentException iae) {
+            log.warn("Datos inválidos al actualizar perfil (JSON): {}", iae.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
     /**
      * Cambio de contraseña del usuario autenticado.

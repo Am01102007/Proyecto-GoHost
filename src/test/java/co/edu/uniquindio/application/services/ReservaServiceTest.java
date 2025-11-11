@@ -345,6 +345,8 @@ class ReservaServiceUnitTest {
     @DisplayName("Cancelar reserva exitosamente")
     void testCancelarReservaExitoso() {
         // Arrange
+        // Asegurar que el check-in esté a más de 48 horas
+        reservaMock.setCheckIn(java.time.LocalDate.now().plusDays(3));
         when(reservaRepository.findById(reservaId)).thenReturn(Optional.of(reservaMock));
         when(reservaRepository.save(any(Reserva.class))).thenReturn(reservaMock);
 

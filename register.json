@@ -1,0 +1,12 @@
+﻿{
+  "email": "smoketest.user3@example.com",
+  "nombre": "Smoke",
+  "apellidos": "Test",
+  "tipoDocumento": "CC",
+  "numeroDocumento": "DOC323456",
+  "fechaNacimiento": "1990-01-01",
+  "telefono": "3000000000",
+  "ciudad": "Armenia",
+  "pais": "CO",
+  "password": "Aa1234567"
+}
