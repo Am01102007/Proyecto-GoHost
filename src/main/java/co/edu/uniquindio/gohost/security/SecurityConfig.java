@@ -78,6 +78,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Abrimos también rutas sin prefijo /api para catálogo público
+                        .requestMatchers("/alojamientos", "/alojamientos/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/usuarios/password/reset",
@@ -103,6 +105,8 @@ public class SecurityConfig {
                                 .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
                         )
                         .frameOptions(fo -> fo.sameOrigin())
+                        // Añadimos Vary: Origin para que caches respeten variación por origen
+                        .addHeaderWriter(new org.springframework.security.web.header.writers.StaticHeadersWriter("Vary", "Origin"))
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
@@ -129,6 +133,8 @@ public class SecurityConfig {
         cfg.setAllowedHeaders(parseList(allowedHeadersStr));
         cfg.setAllowCredentials(allowCredentials);
         cfg.setMaxAge(maxAge);
+        // Exponemos Authorization para que el frontend lo pueda leer si es necesario
+        cfg.setExposedHeaders(java.util.List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);
