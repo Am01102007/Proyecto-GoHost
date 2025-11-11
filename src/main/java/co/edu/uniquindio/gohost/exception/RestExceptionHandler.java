@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.hibernate.LazyInitializationException;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -96,6 +98,21 @@ public class RestExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiError> typeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
         String msg = "Parámetro '" + ex.getName() + "' con tipo inválido";
+        return build(HttpStatus.BAD_REQUEST, msg, req);
+    }
+
+    /** 415 - Content-Type no soportado (por ejemplo, se envía application/json en un endpoint multipart) */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> unsupportedMedia(HttpMediaTypeNotSupportedException ex, HttpServletRequest req) {
+        String enviado = ex.getContentType() == null ? "desconocido" : ex.getContentType().toString();
+        String msg = "Content-Type no soportado: " + enviado + ". Usa 'multipart/form-data' con partes 'data' (JSON) y 'files' (imágenes).";
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, msg, req);
+    }
+
+    /** 400 - Falta una parte requerida del multipart (e.g., 'files' o 'data') */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiError> missingPart(MissingServletRequestPartException ex, HttpServletRequest req) {
+        String msg = "Falta parte requerida en la solicitud: '" + ex.getRequestPartName() + "'";
         return build(HttpStatus.BAD_REQUEST, msg, req);
     }
 
