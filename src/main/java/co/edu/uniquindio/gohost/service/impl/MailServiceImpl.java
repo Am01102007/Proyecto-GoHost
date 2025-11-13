@@ -47,20 +47,26 @@ import org.springframework.stereotype.Service;
 public class MailServiceImpl implements MailService {
     private static final Logger log = LoggerFactory.getLogger(MailServiceImpl.class);
 
-    @Value("${spring.mail.username}")
+    @Value("${mail.username}")
     private String username;
 
-    @Value("${spring.mail.password}")
+    @Value("${mail.password}")
     private String password;
 
-    @Value("${spring.mail.port}")
+    @Value("${mail.port}")
     private int port;
 
-    @Value("${spring.mail.host}")
+    @Value("${mail.host}")
     private String host;
 
     @Value("${mail.enabled:false}")
     private boolean enabled;
+
+    @Value("${mail.from:${mail.username}}")
+    private String from;
+
+    @Value("${mail.tls:true}")
+    private boolean tls;
     /**
      * Envía un correo electrónico HTML utilizando Simple Java Mail.
      *
@@ -78,7 +84,7 @@ public class MailServiceImpl implements MailService {
         }
 
         Email email = EmailBuilder.startingBlank()
-                .from(username)
+                .from(from)
                 .to(to)
                 .withSubject(subject)
                 .withHTMLText(html)
@@ -86,7 +92,7 @@ public class MailServiceImpl implements MailService {
 
         try (Mailer mailer = MailerBuilder
                 .withSMTPServer(host, port, username, password)
-                .withTransportStrategy(TransportStrategy.SMTP_TLS)
+                .withTransportStrategy(tls ? TransportStrategy.SMTP_TLS : TransportStrategy.SMTP)
                 .withDebugLogging(true)
                 .buildMailer()) {
 

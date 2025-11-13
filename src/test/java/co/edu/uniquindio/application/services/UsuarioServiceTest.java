@@ -90,7 +90,7 @@ class UsuarioServiceTest {
             Usuario res = usuarioService.crear(nuevo);
 
             assertNotNull(res);
-            verify(usuarioRepository).existsByEmail("nuevo@gohost.test");
+            verify(usuarioRepository).existsByEmailIgnoreCase("nuevo@gohost.test");
             verify(usuarioRepository).existsByNumeroDocumento(DOC_NEW);
             verify(passwordEncoder).encode(RAW_PASS);
             verify(usuarioRepository).save(any(Usuario.class));
@@ -107,8 +107,8 @@ class UsuarioServiceTest {
 
             when(usuarioRepository.existsByEmail(EMAIL_DUP)).thenReturn(true);
 
-            IllegalArgumentException ex = assertThrows(
-                    IllegalArgumentException.class,
+            IllegalStateException ex = assertThrows(
+                    IllegalStateException.class,
                     () -> usuarioService.crear(nuevo)
             );
             assertEquals("Ya existe un usuario con ese correo", ex.getMessage());
@@ -127,8 +127,8 @@ class UsuarioServiceTest {
             when(usuarioRepository.existsByEmail(anyString())).thenReturn(false);
             when(usuarioRepository.existsByNumeroDocumento(DOC_OK)).thenReturn(true);
 
-            IllegalArgumentException ex = assertThrows(
-                    IllegalArgumentException.class,
+            IllegalStateException ex = assertThrows(
+                    IllegalStateException.class,
                     () -> usuarioService.crear(nuevo)
             );
             assertEquals("Ya existe un usuario con ese número de documento", ex.getMessage());
