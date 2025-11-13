@@ -1,4 +1,10 @@
 ## Perfil de producción — Usa Neon mediante variables de entorno
+##
+## Requisitos:
+## - SPRING_DATASOURCE_URL/USERNAME/PASSWORD/DRIVER configurados
+## - JWT_SECRET >= 32 caracteres
+## - CORS variables acordes al dominio del frontend en producción
+## - SMTP configurado y MAIL_ENABLED=true si se requiere envío de correos
 spring:
   config:
     activate:
@@ -24,7 +30,9 @@ logging:
     root: ${LOG_LEVEL_ROOT:INFO}
     org.springframework.security: ${LOG_LEVEL_SECURITY:INFO}
 
-# Mail (habilitado por defecto en prod para compatibilidad con frontend actual)
+# Mail (habilitado por defecto en prod)
+# Definir en entorno: MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD,
+# MAIL_FROM (email remitente), MAIL_TLS (true/false), MAIL_ENABLED (true)
 mail:
   host: ${MAIL_HOST}
   port: ${MAIL_PORT}

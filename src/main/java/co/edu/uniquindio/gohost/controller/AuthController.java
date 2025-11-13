@@ -16,8 +16,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * Controlador para autenticación y registro de usuarios.
- * Expone endpoints bajo el path "/api/auth".
+ * Controlador de autenticación y registro (orientado a producción).
+ * Endpoints bajo "/api/auth" para login y registro seguro.
+ * Consideraciones de producción: rate limiting en login, auditoría de intentos,
+ * y JWT con secreto fuerte definido por entorno.
  */
 @RestController
 @RequestMapping("/api/auth")

@@ -217,7 +217,26 @@ public class UsuarioServiceImpl implements UsuarioService {
         // Guardar el token en la base de datos
         passwordResetTokenRepository.save(resetToken);
 
-        // Envío de correo delegado al frontend (EmailJS). Devolver payload.
+        // En producción el backend envía el correo de recuperación vía MailService.
+        // Nota: el HTML incluye el código en un <h1> para permitir pruebas automatizadas.
+        String html = """
+            <h2>Recuperación de contraseña</h2>
+            <p>Hola %s,</p>
+            <p>Tu código de verificación para restablecer la contraseña es:</p>
+            <h1 style=\"color:#007bff;\">%s</h1>
+            <p>Este código expira en %d minutos.</p>
+            <p>Si no solicitaste este cambio, ignora este mensaje.</p>
+            """.formatted(usuario.getNombre(), codigo, 15);
+
+        try {
+            mailService.sendMail(emailNorm, "Recuperación de contraseña", html);
+        } catch (Exception e) {
+            // Registrar y traducir a excepción de dominio sin filtrar detalles sensibles
+            log.error("Fallo enviando correo de recuperación a {}: {}", emailNorm, e.getMessage());
+            throw new MailServiceException("No fue posible enviar el correo de recuperación", e);
+        }
+
+        // Aún retornamos el payload por compatibilidad (evitar exponer el código en clientes reales).
         return new ResetPasswordPayloadDTO(
                 emailNorm,
                 usuario.getNombre(),

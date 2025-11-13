@@ -1,7 +1,9 @@
 package co.edu.uniquindio.gohost.dto.usuarioDtos;
 
 /**
- * Payload para que el frontend (EmailJS) envíe el correo de recuperación.
+ * Payload informativo para el flujo de recuperación de contraseña.
+ * Nota: en producción el backend envía el correo; este payload puede
+ * usarse para mostrar mensajes al usuario (evitar exponer el código en UI).
  */
 public record ResetPasswordPayloadDTO(
         String email,
@@ -9,4 +11,3 @@ public record ResetPasswordPayloadDTO(
         String codigo,
         int expiraEnMinutos
 ) {}
-

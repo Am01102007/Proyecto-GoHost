@@ -24,14 +24,12 @@ import java.util.UUID;
  *  - Consultas paginadas y por identificadores.
  *  - Validaciones de existencia por email y número de documento.
  *
- * Notas de implementación (para UsuarioServiceImpl):
+ * Notas de implementación (producción):
  *  - Usar PasswordEncoder (BCrypt) para hashear contraseñas.
- *  - Aplicar validaciones con jakarta.validation (en DTOs) y reglas en negocio.
- *  - Lanza excepciones de dominio claras (p.ej. IllegalArgumentException, IllegalStateException,
- *    o tus propias: ConflictException, NotFoundException, BadRequestException).
- *  - Marcar métodos de escritura con @Transactional.
- *  - No exponer entidades JPA directamente en controladores públicos (usar DTOs). Este servicio
- *    puede seguir devolviendo Usuario si así está diseñado, pero el controller debería mapear a DTOs.
+ *  - Validaciones con jakarta.validation y reglas de negocio explícitas.
+ *  - Excepciones de dominio claras (Conflict, NotFound, BadRequest, etc.).
+ *  - Métodos de escritura con @Transactional.
+ *  - No exponer entidades JPA directamente en controladores públicos (usar DTOs).
  */
 public interface UsuarioService {
 
@@ -115,13 +113,12 @@ public interface UsuarioService {
     /**
      * Restablece la contraseña de un usuario y dispara el flujo de recuperación.
      *
-     * Flujo recomendado:
-     *  - Generar token de recuperación (único, con expiración) y persistirlo.
-     *  - Enviar correo con enlace/indicaciones (JavaMail).
-     *  - Alternativamente, generar una contraseña temporal aleatoria y enviarla.
+     * Flujo (prod):
+     *  - Generar token/código (único, con expiración) y persistirlo.
+     *  - Enviar correo HTML con código de verificación (SMTP).
      *
      * Seguridad:
-     *  - No revelar si el email existe (respuesta genérica).
+     *  - No revelar si el email existe (respuesta genérica ideal).
      *
      * @param email correo electrónico del usuario (insensible a mayúsculas).
      */

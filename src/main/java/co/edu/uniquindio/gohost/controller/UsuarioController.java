@@ -27,8 +27,12 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Operaciones de perfil de usuario.
- * Nota: el id del usuario autenticado se extrae del token (atributo "usuarioId" en la request).
+ * Operaciones de usuario orientadas a producción.
+ * El id del usuario autenticado se extrae del token (Authentication#getName).
+ * Endpoints públicos:
+ *  - POST /api/usuarios/password/reset (envía correo con código de verificación)
+ *  - PUT  /api/usuarios/password/confirm (confirma código y cambia contraseña)
+ * Seguridad: no revelar existencia de emails y no exponer datos sensibles en respuestas.
  */
 @RestController
 @RequestMapping("/api/usuarios")
@@ -137,13 +141,14 @@ public class UsuarioController {
     }
 
     /**
-     * Solicita el reseteo de contraseña enviando un token al correo del usuario.
-     * Flujo público: no requiere autenticación.
+     * Solicita reseteo de contraseña y desencadena envío de correo.
+     * Público: no requiere autenticación.
+     * Respuesta 202 Accepted indica que el proceso fue iniciado.
      */
     @PostMapping("/password/reset")
     public ResponseEntity<co.edu.uniquindio.gohost.dto.usuarioDtos.ResetPasswordPayloadDTO> solicitarResetPassword(@RequestBody ResetPasswordDTO dto) {
         var payload = service.resetPassword(dto.email());
-        // 202 Accepted: el proceso de envío de correo se delega al frontend
+        // 202 Accepted: el backend envía correo en prod; payload es informativo
         return ResponseEntity.accepted().body(payload);
     }
 
