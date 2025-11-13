@@ -3,6 +3,7 @@ package co.edu.uniquindio.gohost.service;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioPerfilDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioResDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.EditarUsuarioDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.ResetPasswordPayloadDTO;
 import co.edu.uniquindio.gohost.model.Usuario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -124,7 +125,7 @@ public interface UsuarioService {
      *
      * @param email correo electrónico del usuario (insensible a mayúsculas).
      */
-    void resetPassword(String email);
+    ResetPasswordPayloadDTO resetPassword(String email);
 
     /**
      * Lista los usuarios paginados.

@@ -141,9 +141,10 @@ public class UsuarioController {
      * Flujo público: no requiere autenticación.
      */
     @PostMapping("/password/reset")
-    public ResponseEntity<String> solicitarResetPassword(@RequestBody ResetPasswordDTO dto) {
-        service.resetPassword(dto.email());
-        return ResponseEntity.accepted().body("Se ha enviado un enlace de recuperación a tu correo.");
+    public ResponseEntity<co.edu.uniquindio.gohost.dto.usuarioDtos.ResetPasswordPayloadDTO> solicitarResetPassword(@RequestBody ResetPasswordDTO dto) {
+        var payload = service.resetPassword(dto.email());
+        // 202 Accepted: el proceso de envío de correo se delega al frontend
+        return ResponseEntity.accepted().body(payload);
     }
 
     @PutMapping("/password/confirm")

@@ -2,6 +2,8 @@ package co.edu.uniquindio.gohost.service.impl;
 
 
 import co.edu.uniquindio.gohost.service.mail.MailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
@@ -43,6 +45,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class MailServiceImpl implements MailService {
+    private static final Logger log = LoggerFactory.getLogger(MailServiceImpl.class);
 
     @Value("${spring.mail.username}")
     private String username;
@@ -55,6 +58,9 @@ public class MailServiceImpl implements MailService {
 
     @Value("${spring.mail.host}")
     private String host;
+
+    @Value("${mail.enabled:false}")
+    private boolean enabled;
     /**
      * Envía un correo electrónico HTML utilizando Simple Java Mail.
      *
@@ -65,6 +71,12 @@ public class MailServiceImpl implements MailService {
      */
     @Override
     public void sendMail(String to, String subject, String html) throws Exception {
+        // Si el envío de correo está deshabilitado, hacer no-op para delegar al frontend (EmailJS)
+        if (!enabled) {
+            log.info("Mail deshabilitado (mail.enabled=false). No se enviará correo a {} con asunto '{}'", to, subject);
+            return;
+        }
+
         Email email = EmailBuilder.startingBlank()
                 .from(username)
                 .to(to)

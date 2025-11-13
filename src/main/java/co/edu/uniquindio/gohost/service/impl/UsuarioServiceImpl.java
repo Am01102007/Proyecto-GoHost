@@ -3,6 +3,7 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioPerfilDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.UsuarioResDTO;
 import co.edu.uniquindio.gohost.dto.usuarioDtos.EditarUsuarioDTO;
+import co.edu.uniquindio.gohost.dto.usuarioDtos.ResetPasswordPayloadDTO;
 import co.edu.uniquindio.gohost.exception.PasswordResetException;
 import co.edu.uniquindio.gohost.exception.MailServiceException;
 import co.edu.uniquindio.gohost.model.Usuario;
@@ -191,7 +192,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
-    public void resetPassword(String email) {
+    public ResetPasswordPayloadDTO resetPassword(String email) {
         // Normalizar y buscar usuario por correo (case-insensitive)
         String emailNorm = (email != null) ? email.trim().toLowerCase() : null;
         var usuario = repo.findByEmailIgnoreCase(emailNorm)
@@ -216,24 +217,13 @@ public class UsuarioServiceImpl implements UsuarioService {
         // Guardar el token en la base de datos
         passwordResetTokenRepository.save(resetToken);
 
-        // 🔹 Plantilla HTML del correo
-        String html = """
-    <h2>Restablecimiento de contraseña</h2>
-    <p>Hola %s,</p>
-    <p>Recibimos una solicitud para restablecer tu contraseña.</p>
-    <p>Tu código de recuperación es:</p>
-    <h1 style="color:#007BFF;">%s</h1>
-    <p>Este código expirará en 15 minutos.</p>
-    <br/>
-    <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
-    """.formatted(usuario.getNombre(), codigo);
-
-        // 🔹 Enviar el correo
-        try {
-            mailService.sendMail(emailNorm, "Código de recuperación de contraseña", html);
-        } catch (Exception e) {
-            throw new MailServiceException("Error al enviar el correo de recuperación: " + e.getMessage(), e);
-        }
+        // Envío de correo delegado al frontend (EmailJS). Devolver payload.
+        return new ResetPasswordPayloadDTO(
+                emailNorm,
+                usuario.getNombre(),
+                codigo,
+                15
+        );
     }
 
 

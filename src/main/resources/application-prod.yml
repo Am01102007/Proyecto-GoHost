@@ -23,3 +23,13 @@ logging:
   level:
     root: ${LOG_LEVEL_ROOT:INFO}
     org.springframework.security: ${LOG_LEVEL_SECURITY:INFO}
+
+# Mail (habilitado por defecto en prod para compatibilidad con frontend actual)
+mail:
+  host: ${MAIL_HOST}
+  port: ${MAIL_PORT}
+  username: ${MAIL_USERNAME}
+  password: ${MAIL_PASSWORD}
+  from: ${MAIL_FROM:no-reply@gohost.local}
+  tls: ${MAIL_TLS:true}
+  enabled: ${MAIL_ENABLED:true}
