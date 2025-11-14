@@ -81,7 +81,12 @@ public class AlojamientoServiceImpl implements AlojamientoService {
         // 4) Asociar y persistir
         alojamiento.setAnfitrion(anfitrion);
         Alojamiento guardado = alojamientoRepository.save(alojamiento);
-        try { mailService.sendAsync(MailTemplates.alojamientoCreadoAnfitrion(anfitrion, guardado)); } catch (Exception ignored) {}
+        try {
+            log.info("Enviando correo de 'Alojamiento creado' al anfitrión {}", anfitrion.getEmail());
+            mailService.sendAsync(MailTemplates.alojamientoCreadoAnfitrion(anfitrion, guardado));
+        } catch (Exception e) {
+            log.error("Error enviando correo de 'Alojamiento creado' para alojamiento {}: {}", guardado.getId(), e.getMessage(), e);
+        }
         return guardado;
     }
 
