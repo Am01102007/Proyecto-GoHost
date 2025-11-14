@@ -50,7 +50,7 @@ public class ReservaController {
      * Listar reservas del huésped autenticado como DTO con filtros y ordenamiento.
      */
     @GetMapping("/mias")
-    @PreAuthorize("hasRole('HUESPED')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<ReservaResDTO>> deMisReservas(
             HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
