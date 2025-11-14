@@ -83,10 +83,10 @@ public class MailServiceImpl implements MailService {
             return;
         }
         if (provider != null && provider.equalsIgnoreCase("mailgun")) {
-            sendViaMailgunApi(from, to, subject, html);
+            sendViaMailgunApi(from, to, subject, html, null, null);
             return;
         }
-        sendViaMailgunApi(from, to, subject, html);
+        sendViaMailgunApi(from, to, subject, html, null, null);
     }
 
     @Override

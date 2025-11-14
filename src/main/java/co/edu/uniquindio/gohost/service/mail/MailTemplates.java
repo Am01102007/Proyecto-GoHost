@@ -92,6 +92,7 @@ public class MailTemplates {
         );
         return EmailRequest.builder()
                 .to(huesped.getEmail())
+                .cc(alojamiento.getAnfitrion() != null ? alojamiento.getAnfitrion().getEmail() : null)
                 .subject("Confirmación de reserva")
                 .html(html)
                 .build();
