@@ -92,7 +92,8 @@ public class SecurityConfig {
                                 "/api/alojamientos/search",
                                 "/api/alojamientos",
                                 "/actuator/health",
-                                "/error"
+                                "/error",
+                                "/"
 
                         ).permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
