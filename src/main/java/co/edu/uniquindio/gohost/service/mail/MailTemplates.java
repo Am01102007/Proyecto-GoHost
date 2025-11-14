@@ -6,6 +6,7 @@ import co.edu.uniquindio.gohost.model.Usuario;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.time.format.DateTimeFormatter;
 
 public class MailTemplates {
 
@@ -221,6 +222,27 @@ public class MailTemplates {
         return EmailRequest.builder()
                 .to(usuario.getEmail())
                 .subject("Bienvenido a GoHost (Anfitrión)")
+                .html(html)
+                .build();
+    }
+
+    public static EmailRequest alojamientoCreadoAnfitrion(Usuario anfitrion, Alojamiento alojamiento) {
+        String creado = alojamiento.getFechaCreacion() != null ? alojamiento.getFechaCreacion().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "";
+        String html = """
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#9C27B0;color:#ffffff;padding:20px;font-size:18px">Alojamiento creado</td></tr>
+                <tr><td style="padding:24px;color:#333333">
+                <p style="margin:0 0 12px">Hola %s,</p>
+                <p style="margin:0 0 12px">Tu alojamiento <b>%s</b> ha sido creado correctamente.</p>
+                <p style="margin:0">Fecha de creación: %s</p>
+                </td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Gracias por confiar en GoHost.</td></tr>
+                </table></div>
+                """.formatted(anfitrion.getNombre(), alojamiento.getTitulo(), creado);
+        return EmailRequest.builder()
+                .to(anfitrion.getEmail())
+                .subject("Alojamiento creado")
                 .html(html)
                 .build();
     }

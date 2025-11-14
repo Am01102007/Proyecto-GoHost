@@ -13,6 +13,8 @@ import co.edu.uniquindio.gohost.repository.ReservaRepository;
 import co.edu.uniquindio.gohost.repository.UsuarioRepository;
 import co.edu.uniquindio.gohost.service.AlojamientoService;
 import co.edu.uniquindio.gohost.service.geocoding.GeocodingService;
+import co.edu.uniquindio.gohost.service.mail.MailService;
+import co.edu.uniquindio.gohost.service.mail.MailTemplates;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -49,6 +51,7 @@ public class AlojamientoServiceImpl implements AlojamientoService {
     private final UsuarioRepository usuarioRepository;
     private final ReservaRepository reservaRepository;
     private final GeocodingService geocodingService;
+    private final MailService mailService;
     /**
      * Crea un alojamiento para el anfitrión indicado.
      */
@@ -77,7 +80,9 @@ public class AlojamientoServiceImpl implements AlojamientoService {
 
         // 4) Asociar y persistir
         alojamiento.setAnfitrion(anfitrion);
-        return alojamientoRepository.save(alojamiento);
+        Alojamiento guardado = alojamientoRepository.save(alojamiento);
+        try { mailService.sendAsync(MailTemplates.alojamientoCreadoAnfitrion(anfitrion, guardado)); } catch (Exception ignored) {}
+        return guardado;
     }
 
     /**
