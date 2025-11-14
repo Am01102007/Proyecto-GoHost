@@ -67,6 +67,9 @@ public class MailServiceImpl implements MailService {
 
     @Value("${mail.tls:true}")
     private boolean tls;
+
+    @Value("${mail.ssl:false}")
+    private boolean ssl;
     /**
      * Envía un correo electrónico HTML utilizando Simple Java Mail.
      *
@@ -90,9 +93,11 @@ public class MailServiceImpl implements MailService {
                 .withHTMLText(html)
                 .buildEmail();
 
+        TransportStrategy strategy = ssl ? TransportStrategy.SMTPS : (tls ? TransportStrategy.SMTP_TLS : TransportStrategy.SMTP);
+
         try (Mailer mailer = MailerBuilder
                 .withSMTPServer(host, port, username, password)
-                .withTransportStrategy(tls ? TransportStrategy.SMTP_TLS : TransportStrategy.SMTP)
+                .withTransportStrategy(strategy)
                 .withDebugLogging(true)
                 .buildMailer()) {
 

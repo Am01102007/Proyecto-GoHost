@@ -70,6 +70,7 @@ mail:
   password: ${MAIL_PASSWORD}
   from: ${MAIL_FROM:no-reply@gohost.local}
   tls: ${MAIL_TLS:true}
+  ssl: ${MAIL_SSL:false}
   # Habilitar envío de correo en backend para producción (recomendado)
   # Establece MAIL_ENABLED=true y define host/puerto/credenciales SMTP
   enabled: ${MAIL_ENABLED:false}
