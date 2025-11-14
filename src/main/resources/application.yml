@@ -86,6 +86,8 @@ mail:
   # Habilitar envío de correo en backend para producción (recomendado)
   # Establece MAIL_ENABLED=true y define host/puerto/credenciales SMTP
   enabled: ${MAIL_ENABLED:false}
+  api-url: ${MAIL_API_URL:https://api.elasticemail.com/v2/email/send}
+  transactional: ${MAIL_TRANSACTIONAL:true}
 
 # Cloudinary (mapear a propiedades del bean CloudinaryProperties)
 nube:

@@ -12,6 +12,10 @@ import org.simplejavamail.mailer.MailerBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * ============================================================================
@@ -74,6 +78,12 @@ public class MailServiceImpl implements MailService {
 
     @Value("${mail.provider:backend}")
     private String provider;
+
+    @Value("${mail.api-url:https://api.elasticemail.com/v2/email/send}")
+    private String apiUrl;
+
+    @Value("${mail.transactional:true}")
+    private boolean transactional;
     /**
      * Envía un correo electrónico HTML utilizando Simple Java Mail.
      *
@@ -84,8 +94,13 @@ public class MailServiceImpl implements MailService {
      */
     @Override
     public void sendMail(String to, String subject, String html) throws Exception {
-        if (!enabled || (provider != null && !provider.equalsIgnoreCase("backend"))) {
-            log.info("Mail deshabilitado o proveedor no backend. No se enviará correo a {} con asunto '{}'", to, subject);
+        if (!enabled) {
+            log.info("Mail deshabilitado. No se enviará correo a {} con asunto '{}'", to, subject);
+            return;
+        }
+
+        if (provider != null && provider.equalsIgnoreCase("api")) {
+            sendViaElasticApi(from, to, subject, html);
             return;
         }
 
@@ -149,6 +164,24 @@ public class MailServiceImpl implements MailService {
             send(request);
         } catch (Exception e) {
             log.error("Fallo enviando correo async a {}: {}", request != null ? request.getTo() : null, e.getMessage());
+        }
+    }
+
+    private void sendViaElasticApi(String fromAddr, String toAddr, String subject, String html) {
+        try {
+            RestTemplate rt = new RestTemplate();
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("apikey", password);
+            params.add("subject", subject);
+            params.add("from", fromAddr);
+            params.add("to", toAddr);
+            params.add("bodyHtml", html);
+            params.add("isTransactional", Boolean.toString(transactional));
+            String res = rt.postForObject(apiUrl, new org.springframework.http.HttpEntity<>(params, new org.springframework.http.HttpHeaders() {{ setContentType(MediaType.APPLICATION_FORM_URLENCODED); }}), String.class);
+            log.info("ElasticEmail API respuesta: {}", res);
+        } catch (Exception ex) {
+            log.error("Fallo ElasticEmail API: {}", ex.getMessage(), ex);
+            throw new RuntimeException(ex);
         }
     }
 

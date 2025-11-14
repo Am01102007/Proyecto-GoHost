@@ -45,3 +45,5 @@ mail:
   ssl: ${MAIL_SSL:false}
   provider: ${MAIL_PROVIDER:backend}
   enabled: ${MAIL_ENABLED:true}
+  api-url: ${MAIL_API_URL:https://api.elasticemail.com/v2/email/send}
+  transactional: ${MAIL_TRANSACTIONAL:true}
