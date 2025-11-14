@@ -49,12 +49,12 @@ spring:
     console:
       enabled: false
   flyway:
-    enabled: ${FLYWAY_ENABLED:true}
+    enabled: ${SPRING_FLYWAY_ENABLED:${FLYWAY_ENABLED:true}}
 
 server:
   # En entornos como Railway se inyecta PORT; usamos PORT si existe,
   # y caemos a SERVER_PORT (local) o 8080 por defecto.
-  port: ${PORT:${SERVER_PORT:8080}}
+  port: ${PORT:8080}
 
 # CORS (prefijo esperado por CorsProperties y SecurityConfig)
 # Mantener orígenes necesarios para frontends en producción o pruebas locales.
@@ -87,12 +87,15 @@ mail:
   # Establece MAIL_ENABLED=true y define host/puerto/credenciales SMTP
   enabled: ${MAIL_ENABLED:false}
 
-# Cloudinary
-cloudinary:
-  # Definir en entorno: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
-  cloud-name: ${CLOUDINARY_CLOUD_NAME}
-  api-key: ${CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET}
+# Cloudinary (mapear a propiedades del bean CloudinaryProperties)
+nube:
+  imagenes:
+    habilitado: true
+    nombre-nube: ${CLOUDINARY_CLOUD_NAME}
+    clave-api: ${CLOUDINARY_API_KEY}
+    clave-secreta: ${CLOUDINARY_API_SECRET}
+    carpeta: ${CLOUDINARY_FOLDER:gohost/imagenes}
+    tamano-maximo: ${CLOUDINARY_MAX_SIZE:5242880}
 
 # springdoc
 springdoc:

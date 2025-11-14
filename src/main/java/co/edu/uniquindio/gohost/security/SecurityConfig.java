@@ -145,6 +145,9 @@ public class SecurityConfig {
     private List<String> parseList(String csv) {
         return Arrays.stream(csv.split(","))
                 .map(String::trim)
+                .map(s -> s.replace("`", ""))
+                .map(s -> s.replace("\"", ""))
+                .map(s -> s.endsWith("/") ? s.substring(0, s.length() - 1) : s)
                 .filter(s -> !s.isEmpty())
                 .toList();
     }
