@@ -56,14 +56,7 @@ public class AuthController {
                 .activo(true)
                 .build();
         var created = usuarios.crear(u);
-        try {
-            String html = """
-                <h2>Bienvenido a GoHost</h2>
-                <p>Hola %s,</p>
-                <p>Tu registro fue exitoso. Ya puedes iniciar sesión y reservar.</p>
-                """.formatted(created.getNombre());
-            mailService.sendAsync(EmailRequest.builder().to(created.getEmail()).subject("Bienvenido a GoHost").html(html).build());
-        } catch (Exception ignored) {}
+        try { mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.bienvenidaHuesped(created)); } catch (Exception ignored) {}
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
     /**
@@ -91,14 +84,7 @@ public class AuthController {
                 .activo(true)
                 .build();
         var created = usuarios.crear(u);
-        try {
-            String html = """
-                <h2>Bienvenido como anfitrión</h2>
-                <p>Hola %s,</p>
-                <p>Tu registro como anfitrión fue exitoso. ¡Empieza a publicar tus alojamientos!</p>
-                """.formatted(created.getNombre());
-            mailService.sendAsync(EmailRequest.builder().to(created.getEmail()).subject("Bienvenido a GoHost (Anfitrión)").html(html).build());
-        } catch (Exception ignored) {}
+        try { mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.bienvenidaAnfitrion(created)); } catch (Exception ignored) {}
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

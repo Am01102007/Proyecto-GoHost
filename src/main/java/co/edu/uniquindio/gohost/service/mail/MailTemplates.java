@@ -181,5 +181,47 @@ public class MailTemplates {
                 .html(html)
                 .build();
     }
-}
+    public static EmailRequest bienvenidaHuesped(Usuario usuario) {
+        String html = """
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#1e88e5;color:#ffffff;padding:20px;font-size:18px">Bienvenido a GoHost</td></tr>
+                <tr><td style="padding:24px;color:#333333">
+                <p style="margin:0 0 12px">Hola %s,</p>
+                <p style="margin:0 0 16px">Tu registro fue exitoso. Ya puedes explorar alojamientos y realizar reservas de forma segura.</p>
+                <a href="https://front-gohost-production.up.railway.app" style="display:inline-block;background:#1e88e5;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px">Explorar alojamientos</a>
+                </td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">
+                © GoHost • Conectando huéspedes y anfitriones de forma confiable
+                </td></tr>
+                </table></div>
+                """.formatted(usuario.getNombre());
+        return EmailRequest.builder()
+                .to(usuario.getEmail())
+                .subject("Bienvenido a GoHost")
+                .html(html)
+                .build();
+    }
 
+    public static EmailRequest bienvenidaAnfitrion(Usuario usuario) {
+        String html = """
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#43a047;color:#ffffff;padding:20px;font-size:18px">Bienvenido como Anfitrión</td></tr>
+                <tr><td style="padding:24px;color:#333333">
+                <p style="margin:0 0 12px">Hola %s,</p>
+                <p style="margin:0 0 16px">Tu registro como anfitrión fue exitoso. Publica tu primer alojamiento y empieza a recibir huéspedes.</p>
+                <a href="https://front-gohost-production.up.railway.app" style="display:inline-block;background:#43a047;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px">Publicar alojamiento</a>
+                </td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">
+                © GoHost • Impulsa tu hospedaje con herramientas simples y potentes
+                </td></tr>
+                </table></div>
+                """.formatted(usuario.getNombre());
+        return EmailRequest.builder()
+                .to(usuario.getEmail())
+                .subject("Bienvenido a GoHost (Anfitrión)")
+                .html(html)
+                .build();
+    }
+}
