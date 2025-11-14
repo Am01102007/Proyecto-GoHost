@@ -28,6 +28,7 @@ public class AuthController {
 
     private final UsuarioService usuarios;  // Servicio de dominio para usuarios
     private final JWTUtils jwtUtils;        // Utilidad para generar/validar JWT
+    private final co.edu.uniquindio.gohost.service.mail.MailService mailService;
 
     /**
      * Registra un nuevo usuario con rol HUESPED por defecto.
@@ -53,8 +54,16 @@ public class AuthController {
                 .rol(Rol.HUESPED)
                 .activo(true)
                 .build();
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(usuarios.crear(u));
+        var created = usuarios.crear(u);
+        try {
+            String html = """
+                <h2>Bienvenido a GoHost</h2>
+                <p>Hola %s,</p>
+                <p>Tu registro fue exitoso. Ya puedes iniciar sesión y reservar.</p>
+                """.formatted(created.getNombre());
+            mailService.sendMail(created.getEmail(), "Bienvenido a GoHost", html);
+        } catch (Exception ignored) {}
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
     /**
      * Registra un nuevo usuario con rol ANFITRION por defecto.
@@ -80,8 +89,16 @@ public class AuthController {
                 .rol(Rol.ANFITRION)
                 .activo(true)
                 .build();
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(usuarios.crear(u));
+        var created = usuarios.crear(u);
+        try {
+            String html = """
+                <h2>Bienvenido como anfitrión</h2>
+                <p>Hola %s,</p>
+                <p>Tu registro como anfitrión fue exitoso. ¡Empieza a publicar tus alojamientos!</p>
+                """.formatted(created.getNombre());
+            mailService.sendMail(created.getEmail(), "Bienvenido a GoHost (Anfitrión)", html);
+        } catch (Exception ignored) {}
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     /**

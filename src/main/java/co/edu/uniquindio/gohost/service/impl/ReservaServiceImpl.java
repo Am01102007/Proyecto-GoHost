@@ -193,6 +193,7 @@ public class ReservaServiceImpl implements ReservaService {
         if (actualizada.isEliminada() || actualizada.getEstado() == EstadoReserva.CANCELADA) {
             throw new IllegalStateException("La reserva cancelada/eliminada no puede modificarse");
         }
+        EstadoReserva previo = actualizada.getEstado();
 
         if (in != null && out != null) {
             validarRango(in, out);
@@ -208,7 +209,41 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         repo.save(actualizada);
-        return toRes(repo.findByIdWithFotos(actualizada.getId()).orElseThrow());
+        Reserva cargada = repo.findByIdWithFotos(actualizada.getId()).orElseThrow();
+        if (previo != cargada.getEstado()) {
+            if (cargada.getEstado() == EstadoReserva.CONFIRMADA) {
+                try {
+                    String htmlH = """
+                        <h2>Reserva confirmada</h2>
+                        <p>Tu reserva %s ha sido confirmada y el pago fue procesado.</p>
+                        """.formatted(cargada.getId());
+                    mailService.sendMail(cargada.getHuesped().getEmail(), "Reserva confirmada", htmlH);
+                } catch (Exception ignored) {}
+                try {
+                    String htmlA = """
+                        <h2>Reserva confirmada</h2>
+                        <p>La reserva %s de tu alojamiento ha sido confirmada.</p>
+                        """.formatted(cargada.getId());
+                    mailService.sendMail(cargada.getAlojamiento().getAnfitrion().getEmail(), "Reserva confirmada", htmlA);
+                } catch (Exception ignored) {}
+            } else if (cargada.getEstado() == EstadoReserva.CANCELADA) {
+                try {
+                    String htmlH = """
+                        <h2>Reserva cancelada</h2>
+                        <p>Tu reserva %s ha sido cancelada.</p>
+                        """.formatted(cargada.getId());
+                    mailService.sendMail(cargada.getHuesped().getEmail(), "Reserva cancelada", htmlH);
+                } catch (Exception ignored) {}
+                try {
+                    String htmlA = """
+                        <h2>Reserva cancelada</h2>
+                        <p>La reserva %s de tu alojamiento ha sido cancelada.</p>
+                        """.formatted(cargada.getId());
+                    mailService.sendMail(cargada.getAlojamiento().getAnfitrion().getEmail(), "Reserva cancelada", htmlA);
+                } catch (Exception ignored) {}
+            }
+        }
+        return toRes(cargada);
     }
 
     /** Cancelar (soft delete + estado CANCELADA). Idempotente. */
@@ -230,6 +265,20 @@ public class ReservaServiceImpl implements ReservaService {
         r.setEstado(EstadoReserva.CANCELADA);
         r.setEliminada(true);
         repo.save(r);
+        try {
+            String htmlH = """
+                <h2>Reserva cancelada</h2>
+                <p>Tu reserva %s ha sido cancelada.</p>
+                """.formatted(r.getId());
+            mailService.sendMail(r.getHuesped().getEmail(), "Reserva cancelada", htmlH);
+        } catch (Exception ignored) {}
+        try {
+            String htmlA = """
+                <h2>Reserva cancelada</h2>
+                <p>La reserva %s de tu alojamiento ha sido cancelada.</p>
+                """.formatted(r.getId());
+            mailService.sendMail(r.getAlojamiento().getAnfitrion().getEmail(), "Reserva cancelada", htmlA);
+        } catch (Exception ignored) {}
 
         // ========= Cancelar recordatorios automáticos =========
         try {

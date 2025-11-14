@@ -174,7 +174,16 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
         // Nota: El email ya no se puede modificar por seguridad
 
-        return repo.save(u);
+        Usuario saved = repo.save(u);
+        try {
+            String html = """
+                <h2>Perfil actualizado</h2>
+                <p>Hola %s,</p>
+                <p>Tus datos de perfil han sido actualizados correctamente.</p>
+                """.formatted(saved.getNombre());
+            mailService.sendMail(saved.getEmail(), "Perfil actualizado", html);
+        } catch (Exception ignored) {}
+        return saved;
     }
 
     /**
@@ -189,6 +198,14 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
         u.setPassword(passwordEncoder.encode(nueva));
         repo.save(u);
+        try {
+            String html = """
+                <h2>Contraseña cambiada</h2>
+                <p>Hola %s,</p>
+                <p>Tu contraseña ha sido actualizada exitosamente.</p>
+                """.formatted(u.getNombre());
+            mailService.sendMail(u.getEmail(), "Contraseña cambiada", html);
+        } catch (Exception ignored) {}
     }
 
     @Override
@@ -325,6 +342,14 @@ public class UsuarioServiceImpl implements UsuarioService {
         repo.save(usuario);
 
         passwordResetTokenRepository.deleteByUsuarioId(usuario.getId());
+        try {
+            String html = """
+                <h2>Contraseña restablecida</h2>
+                <p>Hola %s,</p>
+                <p>Tu contraseña fue restablecida correctamente.</p>
+                """.formatted(usuario.getNombre());
+            mailService.sendMail(usuario.getEmail(), "Contraseña restablecida", html);
+        } catch (Exception ignored) {}
     }
 
     @Override
