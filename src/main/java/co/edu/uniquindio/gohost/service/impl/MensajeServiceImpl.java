@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -26,6 +27,7 @@ public class MensajeServiceImpl implements MensajeService {
     private final UsuarioRepository usuarioRepo;
 
     @Override
+    @Transactional
     public MensajeResDTO enviar(UUID remitenteId, CrearMensajeDTO dto) {
         Reserva r = reservaRepo.findById(dto.reservaId())
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Reserva no existe"));
@@ -50,6 +52,7 @@ public class MensajeServiceImpl implements MensajeService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<MensajeResDTO> listarPorReserva(UUID usuarioId, UUID reservaId, Pageable pageable) {
         Reserva r = reservaRepo.findById(reservaId)
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Reserva no existe"));
@@ -72,4 +75,3 @@ public class MensajeServiceImpl implements MensajeService {
         );
     }
 }
-

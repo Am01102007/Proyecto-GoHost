@@ -13,10 +13,12 @@ public interface MensajeRepository extends JpaRepository<Mensaje, UUID> {
 
     @Query("""
         SELECT m FROM Mensaje m
-        JOIN m.reserva r
+        JOIN FETCH m.remitente rem
+        JOIN FETCH m.reserva r
+        JOIN FETCH r.alojamiento a
+        JOIN FETCH a.anfitrion an
         WHERE r.id = :reservaId
         ORDER BY m.creadoEn ASC
     """)
     Page<Mensaje> findByReserva(@Param("reservaId") UUID reservaId, Pageable pageable);
 }
-
