@@ -138,12 +138,20 @@ public class RecordatorioServiceImpl implements RecordatorioService {
             // Incrementar intentos de envío
             recordatorio.setIntentosEnvio(recordatorio.getIntentosEnvio() + 1);
 
-            // Enviar email
-            mailService.sendMail(
-                recordatorio.getEmailDestinatario(),
-                recordatorio.getAsunto(),
-                recordatorio.getMensaje()
-            );
+            String html = """
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#546e7a;color:#ffffff;padding:20px;font-size:18px">%s</td></tr>
+                <tr><td style="padding:24px;color:#333333">%s</td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">GoHost</td></tr>
+                </table></div>
+                """.formatted(recordatorio.getAsunto(), recordatorio.getMensaje());
+
+            mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.EmailRequest.builder()
+                .to(recordatorio.getEmailDestinatario())
+                .subject(recordatorio.getAsunto())
+                .html(html)
+                .build());
 
             // Marcar como enviado
             recordatorio.setEstado(EstadoRecordatorio.ENVIADO);

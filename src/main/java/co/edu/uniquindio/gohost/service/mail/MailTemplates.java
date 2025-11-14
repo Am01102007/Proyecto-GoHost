@@ -53,7 +53,7 @@ public class MailTemplates {
                 <h2>Recuperación de contraseña</h2>
                 <p>Hola %s,</p>
                 <p>Tu código de verificación para restablecer la contraseña es:</p>
-                <h1 style=\"color:#007bff;\">%s</h1>
+                <h1 style=\"color:#9C27B0;\">%s</h1>
                 <p>Este código expira en %d minutos.</p>
                 <p>Si no solicitaste este cambio, ignora este mensaje.</p>
                 """.formatted(usuario.getNombre(), codigo, minutos);
@@ -74,7 +74,7 @@ public class MailTemplates {
                 <p>Hola %s,</p>
                 <p>Tu reserva se ha creado correctamente.</p>
                 <p><b>Código de reserva:</b></p>
-                <h1 style=\"color:#007BFF;\">%s</h1>
+                <h1 style=\"color:#9C27B0;\">%s</h1>
                 <p><b>Alojamiento:</b> %s</p>
                 <p><b>Check-in:</b> %s</p>
                 <p><b>Check-out:</b> %s</p>
@@ -185,11 +185,11 @@ public class MailTemplates {
         String html = """
                 <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
                 <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
-                <tr><td style="background:#1e88e5;color:#ffffff;padding:20px;font-size:18px">Bienvenido a GoHost</td></tr>
+                <tr><td style="background:#9C27B0;color:#ffffff;padding:20px;font-size:18px">Bienvenido a GoHost</td></tr>
                 <tr><td style="padding:24px;color:#333333">
                 <p style="margin:0 0 12px">Hola %s,</p>
                 <p style="margin:0 0 16px">Tu registro fue exitoso. Ya puedes explorar alojamientos y realizar reservas de forma segura.</p>
-                <a href="https://front-gohost-production.up.railway.app" style="display:inline-block;background:#1e88e5;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px">Explorar alojamientos</a>
+                <a href="https://front-gohost-production.up.railway.app" style="display:inline-block;background:#9C27B0;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px">Explorar alojamientos</a>
                 </td></tr>
                 <tr><td style="padding:16px 24px;color:#888888;font-size:12px">
                 © GoHost • Conectando huéspedes y anfitriones de forma confiable
