@@ -16,6 +16,10 @@ import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
 
 /**
  * ============================================================================
@@ -103,6 +107,10 @@ public class MailServiceImpl implements MailService {
             sendViaElasticApi(from, to, subject, html);
             return;
         }
+        if (provider != null && provider.equalsIgnoreCase("mailgun")) {
+            sendViaMailgunApi(from, to, subject, html);
+            return;
+        }
 
         Email email = EmailBuilder.startingBlank()
                 .from(from)
@@ -181,6 +189,23 @@ public class MailServiceImpl implements MailService {
             log.info("ElasticEmail API respuesta: {}", res);
         } catch (Exception ex) {
             log.error("Fallo ElasticEmail API: {}", ex.getMessage(), ex);
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private void sendViaMailgunApi(String fromAddr, String toAddr, String subject, String html) {
+        try {
+            HttpResponse<JsonNode> res = Unirest.post(apiUrl)
+                    .basicAuth("api", password)
+                    .field("from", fromAddr)
+                    .field("to", toAddr)
+                    .field("subject", subject)
+                    .field("html", html)
+                    .asJson();
+            String body = res.getBody() != null ? res.getBody().toString() : String.valueOf(res.getStatus());
+            log.info("Mailgun API respuesta: {}", body);
+        } catch (UnirestException ex) {
+            log.error("Fallo Mailgun API: {}", ex.getMessage(), ex);
             throw new RuntimeException(ex);
         }
     }
