@@ -63,7 +63,6 @@ public interface ReservaRepository extends JpaRepository<Reserva, UUID> {
         JOIN FETCH r.huesped
         JOIN FETCH r.alojamiento a
         LEFT JOIN FETCH a.direccion
-        -- fotos fuera del fetch para evitar explosión de filas
         WHERE r.huesped.id = :huespedId
         AND (:fechaInicio IS NULL OR r.checkIn >= :fechaInicio)
         AND (:fechaFin IS NULL OR r.checkOut <= :fechaFin)
@@ -92,7 +91,6 @@ public interface ReservaRepository extends JpaRepository<Reserva, UUID> {
         JOIN FETCH r.huesped
         JOIN FETCH r.alojamiento a
         LEFT JOIN FETCH a.direccion
-        -- fotos fuera del fetch para evitar explosión de filas
         WHERE a.anfitrion.id = :anfitrionId
         """,
             countQuery = """
@@ -111,7 +109,6 @@ public interface ReservaRepository extends JpaRepository<Reserva, UUID> {
         JOIN FETCH r.huesped
         JOIN FETCH r.alojamiento a
         LEFT JOIN FETCH a.direccion
-        -- fotos fuera del fetch para evitar explosión de filas
         WHERE a.id = :alojamientoId
         """,
             countQuery = """
