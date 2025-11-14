@@ -41,4 +41,5 @@ mail:
   from: ${MAIL_FROM:no-reply@gohost.local}
   tls: ${MAIL_TLS:true}
   ssl: ${MAIL_SSL:false}
+  provider: ${MAIL_PROVIDER:backend}
   enabled: ${MAIL_ENABLED:true}

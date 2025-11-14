@@ -70,6 +70,9 @@ public class MailServiceImpl implements MailService {
 
     @Value("${mail.ssl:false}")
     private boolean ssl;
+
+    @Value("${mail.provider:backend}")
+    private String provider;
     /**
      * Envía un correo electrónico HTML utilizando Simple Java Mail.
      *
@@ -80,9 +83,8 @@ public class MailServiceImpl implements MailService {
      */
     @Override
     public void sendMail(String to, String subject, String html) throws Exception {
-        // Si el envío de correo está deshabilitado, hacer no-op para delegar al frontend (EmailJS)
-        if (!enabled) {
-            log.info("Mail deshabilitado (mail.enabled=false). No se enviará correo a {} con asunto '{}'", to, subject);
+        if (!enabled || (provider != null && !provider.equalsIgnoreCase("backend"))) {
+            log.info("Mail deshabilitado o proveedor no backend. No se enviará correo a {} con asunto '{}'", to, subject);
             return;
         }
 
