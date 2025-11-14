@@ -52,9 +52,9 @@ spring:
     enabled: ${SPRING_FLYWAY_ENABLED:${FLYWAY_ENABLED:true}}
 
 server:
-  # En entornos como Railway se inyecta PORT; usamos PORT si existe,
-  # y caemos a SERVER_PORT (local) o 8080 por defecto.
-  port: ${PORT:8080}
+  # En plataformas como Railway se inyecta PORT; si no existe (local),
+  # caemos a SERVER_PORT o 8080 por defecto.
+  port: ${PORT:${SERVER_PORT:8080}}
 
 # CORS (prefijo esperado por CorsProperties y SecurityConfig)
 # Mantener orígenes necesarios para frontends en producción o pruebas locales.
