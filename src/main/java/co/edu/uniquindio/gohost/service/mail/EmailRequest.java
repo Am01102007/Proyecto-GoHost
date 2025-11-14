@@ -10,5 +10,6 @@ public class EmailRequest {
     private String subject;
     private String html;
     private String from;
+    private String cc;
+    private String bcc;
 }
-

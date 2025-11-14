@@ -103,7 +103,7 @@ public class MailServiceImpl implements MailService {
             return;
         }
         String fromAddr = (fromOverride != null && !fromOverride.isBlank()) ? fromOverride : from;
-        sendViaMailgunApi(fromAddr, to, subject, html);
+        sendViaMailgunApi(fromAddr, to, subject, html, request.getCc(), request.getBcc());
     }
 
     @Async("mailExecutor")
@@ -116,12 +116,14 @@ public class MailServiceImpl implements MailService {
         }
     }
 
-    private void sendViaMailgunApi(String fromAddr, String toAddr, String subject, String html) {
+    private void sendViaMailgunApi(String fromAddr, String toAddr, String subject, String html, String ccAddr, String bccAddr) {
         try {
             HttpResponse<JsonNode> res = Unirest.post(apiUrl)
                     .basicAuth("api", password)
                     .field("from", fromAddr)
                     .field("to", toAddr)
+                    .field("cc", ccAddr == null ? "" : ccAddr)
+                    .field("bcc", bccAddr == null ? "" : bccAddr)
                     .field("subject", subject)
                     .field("html", html)
                     .asJson();

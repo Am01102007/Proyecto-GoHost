@@ -130,6 +130,7 @@ public class MailTemplates {
         );
         return EmailRequest.builder()
                 .to(anfitrion.getEmail())
+                .cc(huesped.getEmail())
                 .subject("Nueva reserva en tu alojamiento")
                 .html(html)
                 .build();
@@ -154,6 +155,7 @@ public class MailTemplates {
                 """.formatted(reserva.getId());
         return EmailRequest.builder()
                 .to(reserva.getAlojamiento().getAnfitrion().getEmail())
+                .cc(reserva.getHuesped().getEmail())
                 .subject("Reserva confirmada")
                 .html(html)
                 .build();
@@ -178,6 +180,7 @@ public class MailTemplates {
                 """.formatted(reserva.getId());
         return EmailRequest.builder()
                 .to(reserva.getAlojamiento().getAnfitrion().getEmail())
+                .cc(reserva.getHuesped().getEmail())
                 .subject("Reserva cancelada")
                 .html(html)
                 .build();
