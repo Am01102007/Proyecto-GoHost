@@ -75,18 +75,11 @@ jwt:
 # Mail
 # Deshabilitado por defecto en base; habilitar en perfil de producción
 mail:
-  host: ${MAIL_HOST}
-  port: ${MAIL_PORT}
-  username: ${MAIL_USERNAME}
   password: ${MAIL_PASSWORD}
   from: ${MAIL_FROM:no-reply@gohost.local}
-  tls: ${MAIL_TLS:true}
-  ssl: ${MAIL_SSL:false}
-  provider: ${MAIL_PROVIDER:backend}
-  # Habilitar envío de correo en backend para producción (recomendado)
-  # Establece MAIL_ENABLED=true y define host/puerto/credenciales SMTP
+  provider: ${MAIL_PROVIDER:mailgun}
   enabled: ${MAIL_ENABLED:false}
-  api-url: ${MAIL_API_URL:https://api.elasticemail.com/v2/email/send}
+  api-url: ${MAIL_API_URL}
   transactional: ${MAIL_TRANSACTIONAL:true}
 
 # Cloudinary (mapear a propiedades del bean CloudinaryProperties)

@@ -64,8 +64,7 @@ dependencies {
     // =========================================================
     // EMAIL
     // =========================================================
-    implementation 'org.simplejavamail:simple-java-mail:8.12.6'
-    implementation 'org.simplejavamail:batch-module:8.12.6'
+    
     implementation 'com.mashape.unirest:unirest-java:1.4.9'
 
     // =========================================================

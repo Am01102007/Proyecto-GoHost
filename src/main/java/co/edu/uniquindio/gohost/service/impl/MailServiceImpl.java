@@ -4,11 +4,6 @@ package co.edu.uniquindio.gohost.service.impl;
 import co.edu.uniquindio.gohost.service.mail.MailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.mailer.Mailer;
-import org.simplejavamail.api.mailer.config.TransportStrategy;
-import org.simplejavamail.email.EmailBuilder;
-import org.simplejavamail.mailer.MailerBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
@@ -56,17 +51,8 @@ import com.mashape.unirest.http.JsonNode;
 public class MailServiceImpl implements MailService {
     private static final Logger log = LoggerFactory.getLogger(MailServiceImpl.class);
 
-    @Value("${mail.username}")
-    private String username;
-
     @Value("${mail.password}")
     private String password;
-
-    @Value("${mail.port}")
-    private int port;
-
-    @Value("${mail.host}")
-    private String host;
 
     @Value("${mail.enabled:false}")
     private boolean enabled;
@@ -74,13 +60,7 @@ public class MailServiceImpl implements MailService {
     @Value("${mail.from:${mail.username}}")
     private String from;
 
-    @Value("${mail.tls:true}")
-    private boolean tls;
-
-    @Value("${mail.ssl:false}")
-    private boolean ssl;
-
-    @Value("${mail.provider:backend}")
+    @Value("${mail.provider:mailgun}")
     private String provider;
 
     @Value("${mail.api-url:https://api.elasticemail.com/v2/email/send}")
@@ -102,33 +82,11 @@ public class MailServiceImpl implements MailService {
             log.info("Mail deshabilitado. No se enviará correo a {} con asunto '{}'", to, subject);
             return;
         }
-
-        if (provider != null && provider.equalsIgnoreCase("api")) {
-            sendViaElasticApi(from, to, subject, html);
-            return;
-        }
         if (provider != null && provider.equalsIgnoreCase("mailgun")) {
             sendViaMailgunApi(from, to, subject, html);
             return;
         }
-
-        Email email = EmailBuilder.startingBlank()
-                .from(from)
-                .to(to)
-                .withSubject(subject)
-                .withHTMLText(html)
-                .buildEmail();
-
-        TransportStrategy strategy = ssl ? TransportStrategy.SMTPS : (tls ? TransportStrategy.SMTP_TLS : TransportStrategy.SMTP);
-
-        try (Mailer mailer = MailerBuilder
-                .withSMTPServer(host, port, username, password)
-                .withTransportStrategy(strategy)
-                .withDebugLogging(true)
-                .buildMailer()) {
-
-            mailer.sendMail(email);
-        }
+        sendViaMailgunApi(from, to, subject, html);
     }
 
     @Override
@@ -141,28 +99,11 @@ public class MailServiceImpl implements MailService {
         String html = request.getHtml();
         String fromOverride = request.getFrom();
 
-        if (!enabled || (provider != null && !provider.equalsIgnoreCase("backend"))) {
-            log.info("Mail deshabilitado o proveedor no backend. No se enviará correo a {} con asunto '{}'", to, subject);
+        if (!enabled) {
             return;
         }
-
-        Email email = EmailBuilder.startingBlank()
-                .from(fromOverride != null && !fromOverride.isBlank() ? fromOverride : from)
-                .to(to)
-                .withSubject(subject)
-                .withHTMLText(html)
-                .buildEmail();
-
-        TransportStrategy strategy = ssl ? TransportStrategy.SMTPS : (tls ? TransportStrategy.SMTP_TLS : TransportStrategy.SMTP);
-
-        try (Mailer mailer = MailerBuilder
-                .withSMTPServer(host, port, username, password)
-                .withTransportStrategy(strategy)
-                .withDebugLogging(true)
-                .buildMailer()) {
-
-            mailer.sendMail(email);
-        }
+        String fromAddr = (fromOverride != null && !fromOverride.isBlank()) ? fromOverride : from;
+        sendViaMailgunApi(fromAddr, to, subject, html);
     }
 
     @Async("mailExecutor")
@@ -172,24 +113,6 @@ public class MailServiceImpl implements MailService {
             send(request);
         } catch (Exception e) {
             log.error("Fallo enviando correo async a {}: {}", request != null ? request.getTo() : null, e.getMessage());
-        }
-    }
-
-    private void sendViaElasticApi(String fromAddr, String toAddr, String subject, String html) {
-        try {
-            RestTemplate rt = new RestTemplate();
-            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("apikey", password);
-            params.add("subject", subject);
-            params.add("from", fromAddr);
-            params.add("to", toAddr);
-            params.add("bodyHtml", html);
-            params.add("isTransactional", Boolean.toString(transactional));
-            String res = rt.postForObject(apiUrl, new org.springframework.http.HttpEntity<>(params, new org.springframework.http.HttpHeaders() {{ setContentType(MediaType.APPLICATION_FORM_URLENCODED); }}), String.class);
-            log.info("ElasticEmail API respuesta: {}", res);
-        } catch (Exception ex) {
-            log.error("Fallo ElasticEmail API: {}", ex.getMessage(), ex);
-            throw new RuntimeException(ex);
         }
     }
 
