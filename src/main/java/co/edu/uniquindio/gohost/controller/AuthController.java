@@ -7,6 +7,7 @@ import co.edu.uniquindio.gohost.model.Rol;
 import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.security.JWTUtils;   // Utilidad JWT correcta
 import co.edu.uniquindio.gohost.service.UsuarioService;
+import co.edu.uniquindio.gohost.service.mail.EmailRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -61,7 +62,7 @@ public class AuthController {
                 <p>Hola %s,</p>
                 <p>Tu registro fue exitoso. Ya puedes iniciar sesión y reservar.</p>
                 """.formatted(created.getNombre());
-            mailService.sendMail(created.getEmail(), "Bienvenido a GoHost", html);
+            mailService.sendAsync(EmailRequest.builder().to(created.getEmail()).subject("Bienvenido a GoHost").html(html).build());
         } catch (Exception ignored) {}
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -96,7 +97,7 @@ public class AuthController {
                 <p>Hola %s,</p>
                 <p>Tu registro como anfitrión fue exitoso. ¡Empieza a publicar tus alojamientos!</p>
                 """.formatted(created.getNombre());
-            mailService.sendMail(created.getEmail(), "Bienvenido a GoHost (Anfitrión)", html);
+            mailService.sendAsync(EmailRequest.builder().to(created.getEmail()).subject("Bienvenido a GoHost (Anfitrión)").html(html).build());
         } catch (Exception ignored) {}
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

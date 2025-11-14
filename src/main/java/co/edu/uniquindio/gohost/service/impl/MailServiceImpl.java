@@ -11,6 +11,7 @@ import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.mailer.MailerBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 /**
  * ============================================================================
@@ -104,6 +105,50 @@ public class MailServiceImpl implements MailService {
                 .buildMailer()) {
 
             mailer.sendMail(email);
+        }
+    }
+
+    @Override
+    public void send(co.edu.uniquindio.gohost.service.mail.EmailRequest request) throws Exception {
+        if (request == null) {
+            return;
+        }
+        String to = request.getTo();
+        String subject = request.getSubject();
+        String html = request.getHtml();
+        String fromOverride = request.getFrom();
+
+        if (!enabled || (provider != null && !provider.equalsIgnoreCase("backend"))) {
+            log.info("Mail deshabilitado o proveedor no backend. No se enviará correo a {} con asunto '{}'", to, subject);
+            return;
+        }
+
+        Email email = EmailBuilder.startingBlank()
+                .from(fromOverride != null && !fromOverride.isBlank() ? fromOverride : from)
+                .to(to)
+                .withSubject(subject)
+                .withHTMLText(html)
+                .buildEmail();
+
+        TransportStrategy strategy = ssl ? TransportStrategy.SMTPS : (tls ? TransportStrategy.SMTP_TLS : TransportStrategy.SMTP);
+
+        try (Mailer mailer = MailerBuilder
+                .withSMTPServer(host, port, username, password)
+                .withTransportStrategy(strategy)
+                .withDebugLogging(true)
+                .buildMailer()) {
+
+            mailer.sendMail(email);
+        }
+    }
+
+    @Async("mailExecutor")
+    @Override
+    public void sendAsync(co.edu.uniquindio.gohost.service.mail.EmailRequest request) {
+        try {
+            send(request);
+        } catch (Exception e) {
+            log.error("Fallo enviando correo async a {}: {}", request != null ? request.getTo() : null, e.getMessage());
         }
     }
 

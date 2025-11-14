@@ -212,35 +212,11 @@ public class ReservaServiceImpl implements ReservaService {
         Reserva cargada = repo.findByIdWithFotos(actualizada.getId()).orElseThrow();
         if (previo != cargada.getEstado()) {
             if (cargada.getEstado() == EstadoReserva.CONFIRMADA) {
-                try {
-                    String htmlH = """
-                        <h2>Reserva confirmada</h2>
-                        <p>Tu reserva %s ha sido confirmada y el pago fue procesado.</p>
-                        """.formatted(cargada.getId());
-                    mailService.sendMail(cargada.getHuesped().getEmail(), "Reserva confirmada", htmlH);
-                } catch (Exception ignored) {}
-                try {
-                    String htmlA = """
-                        <h2>Reserva confirmada</h2>
-                        <p>La reserva %s de tu alojamiento ha sido confirmada.</p>
-                        """.formatted(cargada.getId());
-                    mailService.sendMail(cargada.getAlojamiento().getAnfitrion().getEmail(), "Reserva confirmada", htmlA);
-                } catch (Exception ignored) {}
+                try { mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.reservaConfirmadaHuesped(cargada)); } catch (Exception ignored) {}
+                try { mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.reservaConfirmadaAnfitrion(cargada)); } catch (Exception ignored) {}
             } else if (cargada.getEstado() == EstadoReserva.CANCELADA) {
-                try {
-                    String htmlH = """
-                        <h2>Reserva cancelada</h2>
-                        <p>Tu reserva %s ha sido cancelada.</p>
-                        """.formatted(cargada.getId());
-                    mailService.sendMail(cargada.getHuesped().getEmail(), "Reserva cancelada", htmlH);
-                } catch (Exception ignored) {}
-                try {
-                    String htmlA = """
-                        <h2>Reserva cancelada</h2>
-                        <p>La reserva %s de tu alojamiento ha sido cancelada.</p>
-                        """.formatted(cargada.getId());
-                    mailService.sendMail(cargada.getAlojamiento().getAnfitrion().getEmail(), "Reserva cancelada", htmlA);
-                } catch (Exception ignored) {}
+                try { mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.reservaCanceladaHuesped(cargada)); } catch (Exception ignored) {}
+                try { mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.reservaCanceladaAnfitrion(cargada)); } catch (Exception ignored) {}
             }
         }
         return toRes(cargada);
@@ -265,20 +241,8 @@ public class ReservaServiceImpl implements ReservaService {
         r.setEstado(EstadoReserva.CANCELADA);
         r.setEliminada(true);
         repo.save(r);
-        try {
-            String htmlH = """
-                <h2>Reserva cancelada</h2>
-                <p>Tu reserva %s ha sido cancelada.</p>
-                """.formatted(r.getId());
-            mailService.sendMail(r.getHuesped().getEmail(), "Reserva cancelada", htmlH);
-        } catch (Exception ignored) {}
-        try {
-            String htmlA = """
-                <h2>Reserva cancelada</h2>
-                <p>La reserva %s de tu alojamiento ha sido cancelada.</p>
-                """.formatted(r.getId());
-            mailService.sendMail(r.getAlojamiento().getAnfitrion().getEmail(), "Reserva cancelada", htmlA);
-        } catch (Exception ignored) {}
+        try { mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.reservaCanceladaHuesped(r)); } catch (Exception ignored) {}
+        try { mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.reservaCanceladaAnfitrion(r)); } catch (Exception ignored) {}
 
         // ========= Cancelar recordatorios automáticos =========
         try {
@@ -320,29 +284,8 @@ public class ReservaServiceImpl implements ReservaService {
         String checkInStr = in.format(fmt);
         String checkOutStr = out.format(fmt);
 
-        String html = """
-            <h2>Confirmación de reserva</h2>
-            <p>Hola %s,</p>
-            <p>Tu reserva se ha creado correctamente.</p>
-            <p><b>Código de reserva:</b></p>
-            <h1 style="color:#007BFF;">%s</h1>
-            <p><b>Alojamiento:</b> %s</p>
-            <p><b>Check-in:</b> %s</p>
-            <p><b>Check-out:</b> %s</p>
-            <p><b>Noches:</b> %d</p>
-            <br/>
-            <p>Gracias por reservar con nosotros. Si tienes dudas, responde este correo.</p>
-            """.formatted(
-                nombreHuesped,
-                reserva.getId(),
-                tituloAloj,
-                checkInStr,
-                checkOutStr,
-                noches
-        );
-
         try {
-            mailService.sendMail(emailDestino, "Confirmación de reserva", html);
+            mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.confirmacionReservaHuesped(huesped, alojamiento, reserva, in, out));
         } catch (Exception e) {
             // Log del error pero no fallar la creación de la reserva por problemas de correo
             log.error("Error al enviar correo de confirmación al huésped {}: {}", huesped.getId(), e.getMessage(), e);
@@ -362,35 +305,8 @@ public class ReservaServiceImpl implements ReservaService {
         String checkInStr = in.format(fmt);
         String checkOutStr = out.format(fmt);
 
-        String html = """
-            <h2>Nueva reserva en tu alojamiento</h2>
-            <p>Hola %s,</p>
-            <p>Has recibido una nueva reserva en tu alojamiento.</p>
-            <p><b>Código de reserva:</b></p>
-            <h1 style="color:#28a745;">%s</h1>
-            <p><b>Alojamiento:</b> %s</p>
-            <p><b>Huésped:</b> %s (%s)</p>
-            <p><b>Número de huéspedes:</b> %d</p>
-            <p><b>Check-in:</b> %s</p>
-            <p><b>Check-out:</b> %s</p>
-            <p><b>Noches:</b> %d</p>
-            <br/>
-            <p>Puedes contactar al huésped respondiendo a este correo o a través de la plataforma.</p>
-            <p>¡Prepárate para recibir a tus huéspedes!</p>
-            """.formatted(
-                nombreAnfitrion,
-                reserva.getId(),
-                tituloAloj,
-                nombreHuesped,
-                emailHuesped,
-                numeroHuespedes,
-                checkInStr,
-                checkOutStr,
-                noches
-        );
-
         try {
-            mailService.sendMail(emailAnfitrion, "Nueva reserva en tu alojamiento", html);
+            mailService.sendAsync(co.edu.uniquindio.gohost.service.mail.MailTemplates.nuevaReservaAnfitrion(anfitrion, huesped, alojamiento, reserva, in, out, numeroHuespedes));
         } catch (Exception e) {
             // Log el error pero no fallar la reserva por problemas de correo
             log.error("Error al enviar correo al anfitrión {} para reserva {}: {}", anfitrion.getId(), reserva.getId(), e.getMessage(), e);

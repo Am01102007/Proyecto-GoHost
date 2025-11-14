@@ -10,6 +10,7 @@ import co.edu.uniquindio.gohost.model.Usuario;
 import co.edu.uniquindio.gohost.repository.UsuarioRepository;
 import co.edu.uniquindio.gohost.service.UsuarioService;
 import co.edu.uniquindio.gohost.service.mail.MailService;
+import co.edu.uniquindio.gohost.service.mail.MailTemplates;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import co.edu.uniquindio.gohost.service.geocoding.GeocodingService;
@@ -176,12 +177,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         Usuario saved = repo.save(u);
         try {
-            String html = """
-                <h2>Perfil actualizado</h2>
-                <p>Hola %s,</p>
-                <p>Tus datos de perfil han sido actualizados correctamente.</p>
-                """.formatted(saved.getNombre());
-            mailService.sendMail(saved.getEmail(), "Perfil actualizado", html);
+            mailService.sendAsync(MailTemplates.perfilActualizado(saved));
         } catch (Exception ignored) {}
         return saved;
     }
@@ -199,12 +195,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         u.setPassword(passwordEncoder.encode(nueva));
         repo.save(u);
         try {
-            String html = """
-                <h2>Contraseña cambiada</h2>
-                <p>Hola %s,</p>
-                <p>Tu contraseña ha sido actualizada exitosamente.</p>
-                """.formatted(u.getNombre());
-            mailService.sendMail(u.getEmail(), "Contraseña cambiada", html);
+            mailService.sendAsync(MailTemplates.contraseñaCambiada(u));
         } catch (Exception ignored) {}
     }
 
@@ -236,17 +227,8 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         // En producción el backend envía el correo de recuperación vía MailService.
         // Nota: el HTML incluye el código en un <h1> para permitir pruebas automatizadas.
-        String html = """
-            <h2>Recuperación de contraseña</h2>
-            <p>Hola %s,</p>
-            <p>Tu código de verificación para restablecer la contraseña es:</p>
-            <h1 style=\"color:#007bff;\">%s</h1>
-            <p>Este código expira en %d minutos.</p>
-            <p>Si no solicitaste este cambio, ignora este mensaje.</p>
-            """.formatted(usuario.getNombre(), codigo, 15);
-
         try {
-            mailService.sendMail(emailNorm, "Recuperación de contraseña", html);
+            mailService.sendAsync(MailTemplates.recuperacion(usuario, codigo, 15));
         } catch (Exception e) {
             // Registrar y traducir a excepción de dominio sin filtrar detalles sensibles
             log.error("Fallo enviando correo de recuperación a {}: {}", emailNorm, e.getMessage());
@@ -343,12 +325,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         passwordResetTokenRepository.deleteByUsuarioId(usuario.getId());
         try {
-            String html = """
-                <h2>Contraseña restablecida</h2>
-                <p>Hola %s,</p>
-                <p>Tu contraseña fue restablecida correctamente.</p>
-                """.formatted(usuario.getNombre());
-            mailService.sendMail(usuario.getEmail(), "Contraseña restablecida", html);
+            mailService.sendAsync(MailTemplates.contraseñaRestablecida(usuario));
         } catch (Exception ignored) {}
     }
 

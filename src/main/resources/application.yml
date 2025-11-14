@@ -23,6 +23,12 @@ spring:
     # Definir en entorno: SPRING_DATASOURCE_PASSWORD
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN:2}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT:30000}
+      connection-timeout: ${DB_POOL_CONN_TIMEOUT:30000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME:1800000}
 
   jpa:
     hibernate:
@@ -34,6 +40,9 @@ spring:
         show_sql: ${SPRING_JPA_SHOW_SQL:false}
         jdbc:
           time_zone: UTC
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
 
   # H2 deshabilitado — siempre usamos Postgres (Neon)
   h2:

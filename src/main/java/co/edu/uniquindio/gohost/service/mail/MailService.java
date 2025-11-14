@@ -41,4 +41,8 @@ public interface MailService {
                 @NonNull String subject,
                 @NonNull String html) throws Exception;
 
+    void send(EmailRequest request) throws Exception;
+
+    void sendAsync(EmailRequest request);
+
 }
