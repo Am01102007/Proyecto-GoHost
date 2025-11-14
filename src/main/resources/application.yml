@@ -48,6 +48,8 @@ spring:
   h2:
     console:
       enabled: false
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
 
 server:
   # En entornos como Railway se inyecta PORT; usamos PORT si existe,
