@@ -12,9 +12,15 @@ public class MailTemplates {
 
     public static EmailRequest perfilActualizado(Usuario usuario) {
         String html = """
-                <h2>Perfil actualizado</h2>
-                <p>Hola %s,</p>
-                <p>Tus datos de perfil han sido actualizados correctamente.</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#9C27B0;color:#ffffff;padding:20px;font-size:18px">Perfil actualizado</td></tr>
+                <tr><td style="padding:24px;color:#333333">
+                <p style="margin:0 0 12px">Hola %s,</p>
+                <p style="margin:0 0 16px">Tus datos de perfil han sido actualizados correctamente.</p>
+                </td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">© GoHost</td></tr>
+                </table></div>
                 """.formatted(usuario.getNombre());
         return EmailRequest.builder()
                 .to(usuario.getEmail())
@@ -25,9 +31,15 @@ public class MailTemplates {
 
     public static EmailRequest contraseñaCambiada(Usuario usuario) {
         String html = """
-                <h2>Contraseña cambiada</h2>
-                <p>Hola %s,</p>
-                <p>Tu contraseña ha sido actualizada exitosamente.</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#6a1b9a;color:#ffffff;padding:20px;font-size:18px">Contraseña cambiada</td></tr>
+                <tr><td style="padding:24px;color:#333333">
+                <p style="margin:0 0 12px">Hola %s,</p>
+                <p style="margin:0 0 16px">Tu contraseña ha sido actualizada exitosamente.</p>
+                </td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Si no fuiste tú, contacta soporte.</td></tr>
+                </table></div>
                 """.formatted(usuario.getNombre());
         return EmailRequest.builder()
                 .to(usuario.getEmail())
@@ -38,9 +50,15 @@ public class MailTemplates {
 
     public static EmailRequest contraseñaRestablecida(Usuario usuario) {
         String html = """
-                <h2>Contraseña restablecida</h2>
-                <p>Hola %s,</p>
-                <p>Tu contraseña fue restablecida correctamente.</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#00897b;color:#ffffff;padding:20px;font-size:18px">Contraseña restablecida</td></tr>
+                <tr><td style="padding:24px;color:#333333">
+                <p style="margin:0 0 12px">Hola %s,</p>
+                <p style="margin:0 0 16px">Tu contraseña fue restablecida correctamente.</p>
+                </td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Si no solicitaste este cambio, contáctanos.</td></tr>
+                </table></div>
                 """.formatted(usuario.getNombre());
         return EmailRequest.builder()
                 .to(usuario.getEmail())
@@ -51,12 +69,17 @@ public class MailTemplates {
 
     public static EmailRequest recuperacion(Usuario usuario, String codigo, int minutos) {
         String html = """
-                <h2>Recuperación de contraseña</h2>
-                <p>Hola %s,</p>
-                <p>Tu código de verificación para restablecer la contraseña es:</p>
-                <h1 style=\"color:#9C27B0;\">%s</h1>
-                <p>Este código expira en %d minutos.</p>
-                <p>Si no solicitaste este cambio, ignora este mensaje.</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#ef6c00;color:#ffffff;padding:20px;font-size:18px">Recuperación de contraseña</td></tr>
+                <tr><td style="padding:24px;color:#333333">
+                <p style="margin:0 0 12px">Hola %s,</p>
+                <p style="margin:0 8px 16px">Tu código de verificación para restablecer la contraseña es:</p>
+                <div style="font-size:28px;color:#9C27B0;font-weight:bold;letter-spacing:2px">%s</div>
+                <p style="margin:16px 0 0">Este código expira en %d minutos.</p>
+                </td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Si no solicitaste este cambio, ignora este mensaje.</td></tr>
+                </table></div>
                 """.formatted(usuario.getNombre(), codigo, minutos);
         return EmailRequest.builder()
                 .to(usuario.getEmail())
@@ -71,17 +94,21 @@ public class MailTemplates {
         String checkInStr = in.format(fmt);
         String checkOutStr = out.format(fmt);
         String html = """
-                <h2>Confirmación de reserva</h2>
-                <p>Hola %s,</p>
-                <p>Tu reserva se ha creado correctamente.</p>
-                <p><b>Código de reserva:</b></p>
-                <h1 style=\"color:#9C27B0;\">%s</h1>
-                <p><b>Alojamiento:</b> %s</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#9C27B0;color:#ffffff;padding:20px;font-size:18px">Confirmación de reserva</td></tr>
+                <tr><td style="padding:24px;color:#333333">
+                <p style="margin:0 0 12px">Hola %s,</p>
+                <p style="margin:0 0 12px">Tu reserva se ha creado correctamente.</p>
+                <p style="margin:0 0 8px"><b>Código de reserva:</b></p>
+                <div style="font-size:20px;color:#9C27B0;font-weight:bold">%s</div>
+                <p style="margin:16px 0 0"><b>Alojamiento:</b> %s</p>
                 <p><b>Check-in:</b> %s</p>
                 <p><b>Check-out:</b> %s</p>
                 <p><b>Noches:</b> %d</p>
-                <br/>
-                <p>Gracias por reservar con nosotros. Si tienes dudas, responde este correo.</p>
+                </td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Gracias por reservar con nosotros.</td></tr>
+                </table></div>
                 """.formatted(
                 huesped.getNombre(),
                 reserva.getId(),
@@ -104,20 +131,23 @@ public class MailTemplates {
         String checkInStr = in.format(fmt);
         String checkOutStr = out.format(fmt);
         String html = """
-                <h2>Nueva reserva en tu alojamiento</h2>
-                <p>Hola %s,</p>
-                <p>Has recibido una nueva reserva en tu alojamiento.</p>
-                <p><b>Código de reserva:</b></p>
-                <h1 style=\"color:#28a745;\">%s</h1>
-                <p><b>Alojamiento:</b> %s</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#43a047;color:#ffffff;padding:20px;font-size:18px">Nueva reserva</td></tr>
+                <tr><td style="padding:24px;color:#333333">
+                <p style="margin:0 0 12px">Hola %s,</p>
+                <p style="margin:0 0 12px">Has recibido una nueva reserva en tu alojamiento.</p>
+                <p style="margin:0 0 8px"><b>Código de reserva:</b></p>
+                <div style="font-size:20px;color:#43a047;font-weight:bold">%s</div>
+                <p style="margin:16px 0 0"><b>Alojamiento:</b> %s</p>
                 <p><b>Huésped:</b> %s (%s)</p>
                 <p><b>Número de huéspedes:</b> %d</p>
                 <p><b>Check-in:</b> %s</p>
                 <p><b>Check-out:</b> %s</p>
                 <p><b>Noches:</b> %d</p>
-                <br/>
-                <p>Puedes contactar al huésped respondiendo a este correo o a través de la plataforma.</p>
-                <p>¡Prepárate para recibir a tus huéspedes!</p>
+                </td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Prepárate para recibir a tus huéspedes.</td></tr>
+                </table></div>
                 """.formatted(
                 anfitrion.getNombre(),
                 reserva.getId(),
@@ -139,8 +169,12 @@ public class MailTemplates {
 
     public static EmailRequest reservaConfirmadaHuesped(Reserva reserva) {
         String html = """
-                <h2>Reserva confirmada</h2>
-                <p>Tu reserva %s ha sido confirmada y el pago fue procesado.</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#43a047;color:#ffffff;padding:20px;font-size:18px">Reserva confirmada</td></tr>
+                <tr><td style="padding:24px;color:#333333">Tu reserva %s ha sido confirmada y el pago fue procesado.</td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Gracias por confiar en GoHost.</td></tr>
+                </table></div>
                 """.formatted(reserva.getId());
         return EmailRequest.builder()
                 .to(reserva.getHuesped().getEmail())
@@ -151,8 +185,12 @@ public class MailTemplates {
 
     public static EmailRequest reservaConfirmadaAnfitrion(Reserva reserva) {
         String html = """
-                <h2>Reserva confirmada</h2>
-                <p>La reserva %s de tu alojamiento ha sido confirmada.</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#43a047;color:#ffffff;padding:20px;font-size:18px">Reserva confirmada</td></tr>
+                <tr><td style="padding:24px;color:#333333">La reserva %s de tu alojamiento ha sido confirmada.</td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Puedes coordinar la llegada con el huésped.</td></tr>
+                </table></div>
                 """.formatted(reserva.getId());
         return EmailRequest.builder()
                 .to(reserva.getAlojamiento().getAnfitrion().getEmail())
@@ -164,8 +202,12 @@ public class MailTemplates {
 
     public static EmailRequest reservaCanceladaHuesped(Reserva reserva) {
         String html = """
-                <h2>Reserva cancelada</h2>
-                <p>Tu reserva %s ha sido cancelada.</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#c62828;color:#ffffff;padding:20px;font-size:18px">Reserva cancelada</td></tr>
+                <tr><td style="padding:24px;color:#333333">Tu reserva %s ha sido cancelada.</td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Si fue un error, contáctanos para ayudarte.</td></tr>
+                </table></div>
                 """.formatted(reserva.getId());
         return EmailRequest.builder()
                 .to(reserva.getHuesped().getEmail())
@@ -176,8 +218,12 @@ public class MailTemplates {
 
     public static EmailRequest reservaCanceladaAnfitrion(Reserva reserva) {
         String html = """
-                <h2>Reserva cancelada</h2>
-                <p>La reserva %s de tu alojamiento ha sido cancelada.</p>
+                <div style="font-family:Arial,Helvetica,sans-serif;background:#f7f7f9;padding:24px">
+                <table role="presentation" style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden">
+                <tr><td style="background:#c62828;color:#ffffff;padding:20px;font-size:18px">Reserva cancelada</td></tr>
+                <tr><td style="padding:24px;color:#333333">La reserva %s de tu alojamiento ha sido cancelada.</td></tr>
+                <tr><td style="padding:16px 24px;color:#888888;font-size:12px">Te avisaremos ante nuevas reservas.</td></tr>
+                </table></div>
                 """.formatted(reserva.getId());
         return EmailRequest.builder()
                 .to(reserva.getAlojamiento().getAnfitrion().getEmail())
