@@ -126,4 +126,13 @@ public class AuthController {
                 })
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<Usuario> me(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        var id = java.util.UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(usuarios.obtener(id));
+    }
 }

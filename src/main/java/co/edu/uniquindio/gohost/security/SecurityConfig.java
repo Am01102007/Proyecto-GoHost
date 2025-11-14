@@ -81,7 +81,9 @@ public class SecurityConfig {
                         // Abrimos también rutas sin prefijo /api para catálogo público
                         .requestMatchers("/alojamientos", "/alojamientos/**").permitAll()
                         .requestMatchers(
-                                "/api/auth/**",
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/register/anfitrion",
                                 "/api/usuarios/password/reset",
                                 "/api/usuarios/password/confirm",
                                 "/swagger-ui/**",
